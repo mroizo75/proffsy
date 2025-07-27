@@ -1,0 +1,299 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  description String      @db.Text
+  price       Float
+  weight      Float?   // Vekt i gram
+  length      Float?   // Lengde i cm
+  width       Float?   // Bredde i cm
+  height      Float?   // Høyde i cm
+  sku         String      @unique
+  stock       Int           @default(0)
+  images      Image[]
+  categories  Category[]
+  variants    ProductVariant[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  colorId     String?
+  color       Color?   @relation(fields: [colorId], references: [id])
+
+  OrderItem OrderItem[]
+
+  Variant Variant[]
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Color {
+  id        String    @id @default(cuid())
+  name      String
+  value     String    // Hex color code
+  variants  Variant[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  ProductVariant ProductVariant[]
+
+  Product Product[]
+}
+
+model Variant {
+  id        String   @id @default(cuid())
+  name      String
+  sku       String   @unique
+  price     Decimal  @default(0)
+  stock     Int      @default(0)
+  productId String
+  colorId   String?
+  product   Product  @relation(fields: [productId], references: [id])
+  color     Color?   @relation(fields: [colorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Image {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String?
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(USER)
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  savedAddresses UserAddress[]
+  createdAt     DateTime  @default(now())
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, token])
+}
+
+model SecurityLog {
+  id          String    @id @default(cuid())
+  timestamp   DateTime  @default(now())
+  eventType   String    // LOGIN_FAILED, RESET_ATTEMPTED, SUSPICIOUS_IP, etc.
+  severity    Severity  @default(INFO)
+  ip          String
+  userAgent   String?
+  email       String?
+  details     Json?
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Severity {
+  INFO
+  WARNING
+  ALERT
+  CRITICAL
+}
+
+model Order {
+  id              String          @id @default(cuid())
+  orderId         String          @unique
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          OrderStatus     @default(PENDING)
+  paymentStatus   PaymentStatus   @default(PENDING)
+  paymentMethod   String?
+  paymentId       String?         @unique
+  totalAmount     Decimal
+  shippingAmount  Decimal
+  customerEmail   String
+  customerPhone   String
+  items           OrderItem[]
+  shippingAddress ShippingAddress?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([orderId])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  price     Decimal
+  name      String
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model ShippingAddress {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  street     String
+  city       String
+  postalCode String
+  country    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+
+}
+
+model Hero {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  buttonText  String?
+  buttonLink  String?
+  imageUrl    String?   // Gjør denne valgfri
+  videoUrl    String?   // Legg til videoUrl
+  isVideo     Boolean   @default(false)  // Flag for å indikere om det er video
+  startDate   DateTime?
+  endDate     DateTime?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model CompanySettings {
+  id            String   @id @default(cuid())
+  companyName   String
+  street        String
+  postalCode    String
+  city          String
+  country       String   @default("NO")
+  phone         String?
+  email         String?
+  orgNumber     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  logoUrl       String?
+}
+
+model UserAddress {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String   // Navn på adressen (f.eks. "Hjemme", "Jobb")
+  street     String
+  postalCode String
+  city       String
+  country    String   @default("NO")
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@unique([userId, street, postalCode])
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  name      String
+  sku       String
+  price     Float
+  stock     Int
+  image     String?  // Legg til dette
+  colorId   String?
+  color     Color?   @relation(fields: [colorId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+} 
