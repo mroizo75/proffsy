@@ -47,13 +47,15 @@ export async function POST(req: Request) {
       }
     })
 
+    console.log('Creating Nets payment for order:', orderNumber)
+    console.log('Payment amount (øre):', Math.round(body.amount * 100))
+
     // Nets Easy betalingsforespørsel
     const response = await fetch("https://test.api.dibspayment.eu/v1/payments", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${NETS_SECRET_KEY}`,
-        "Commercial-Model": "NETS_EASY",
         "Accept": "application/json"
       },
       body: JSON.stringify({
@@ -93,12 +95,20 @@ export async function POST(req: Request) {
     })
 
     if (!response.ok) {
-      const error = await response.json()
-      console.error("Nets API Error:", error)
-      throw new Error(error.message || "Nets API Error")
+      const errorText = await response.text()
+      console.error("Nets API Error:", response.status, response.statusText)
+      console.error("Nets error response:", errorText)
+      
+      try {
+        const error = JSON.parse(errorText)
+        throw new Error(error.message || "Nets API Error")
+      } catch {
+        throw new Error(`Nets API Error: ${response.status} ${response.statusText}`)
+      }
     }
 
     const data = await response.json()
+    console.log('Nets payment created successfully:', data.paymentId)
 
     // Oppdater ordre med Nets paymentId
     await prisma.order.update({
@@ -120,58 +130,4 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const orderId = searchParams.get('orderId')
-  const paymentId = searchParams.get('paymentId')
-
-  if (!orderId || !paymentId) {
-    return NextResponse.json(
-      { error: "Mangler orderId eller paymentId" },
-      { status: 400 }
-    )
-  }
-
-  try {
-    // Verifiser betaling med Nets
-    const response = await fetch(`https://test.api.dibspayment.eu/v1/payments/${paymentId}`, {
-      headers: {
-        "Authorization": NETS_SECRET_KEY
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error("Kunne ikke verifisere betaling")
-    }
-
-    const data = await response.json()
-    const isCompleted = data.payment.summary.status === "Completed"
-
-    if (isCompleted) {
-      // Oppdater ordre status
-      await prisma.order.update({
-        where: { orderId },
-        data: {
-          status: "COMPLETED",
-          paymentStatus: "PAID",
-          paymentMethod: data.payment.paymentDetails.paymentMethod
-        }
-      })
-
-      // Send ordrebekreftelse på e-post
-      // await sendOrderConfirmation(orderId)
-    }
-
-    return NextResponse.json({
-      status: isCompleted ? "success" : "pending",
-      orderId
-    })
-
-  } catch (error) {
-    console.error("Payment verification error:", error)
-    return NextResponse.json(
-      { error: "Kunne ikke verifisere betaling" },
-      { status: 500 }
-    )
-  }
-} 
+ 

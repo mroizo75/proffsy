@@ -89,16 +89,16 @@ export interface CustomerInfo {
   }
 }
 
-// PostNord service mappings
+// PostNord service mappings (Norsk)
 export const POSTNORD_SERVICES = {
   "17": {
-    name: "Home delivery",
-    description: "Delivery to your home",
+    name: "Hjemlevering",
+    description: "Pakken leveres til døren din",
     type: "home"
   },
   "19": {
-    name: "Service point / Parcel locker",
-    description: "Pickup at service point or parcel locker",
+    name: "Henting på utleveringssted / Pakkeautomat",
+    description: "Henting på utleveringssted eller pakkeautomat",
     type: "pickup"
   }
 } as const

@@ -11,7 +11,7 @@ interface ShippingParams {
   toCountry: string
 }
 
-// PostNord tjeneste-IDs og mapping
+// PostNord tjeneste-IDs og mapping med norske oversettelser
 const POSTNORD_SERVICES = {
   // Standard norske PostNord tjenester
   "DK12": { // Varubrev
@@ -23,14 +23,14 @@ const POSTNORD_SERVICES = {
   },
   "DK30": { // MyPack Home Small
     id: 'mypackhome',
-    name: 'MyPack Home',
+    name: 'Hjemlevering',
     description: 'Levering til døren på dagtid',
     type: 'home',
     defaultPrice: 99
   },
   "DK29": { // MyPack Collect
     id: 'mypackcollect', 
-    name: 'MyPack Collect',
+    name: 'Henting på utleveringssted',
     description: 'Pakke til nærmeste hentested',
     type: 'pickup',
     defaultPrice: 79
@@ -42,6 +42,31 @@ const POSTNORD_SERVICES = {
     type: 'express',
     defaultPrice: 249
   }
+}
+
+// Norske oversettelser for PostNord API-tekster
+const NORWEGIAN_TRANSLATIONS = {
+  // Delivery types
+  "Home delivery": "Hjemlevering",
+  "Collect at Service point": "Henting på utleveringssted", 
+  "Collect at parcel locker": "Henting på pakkeautomat",
+  
+  // Descriptions
+  "Delivery to your home": "Pakken leveres til døren din",
+  "Delivery to your home.": "Pakken leveres til døren din", 
+  "You will be notified via sms/email and in the PostNord App.": "Du får varsel på SMS/e-post og i PostNord-appen.",
+  "Delivery to a service point near you. You will be notified via SMS/email and in PostNord App.": "Levering til et utleveringssted i nærheten. Du får varsel på SMS/e-post og i PostNord-appen.",
+  "Delivery to a parcel locker near you and opened via PostNord App and an electronic national identification. You will be notified via SMS/email and in the PostNord App.": "Levering til en pakkeautomat i nærheten som åpnes med PostNord-appen og BankID. Du får varsel på SMS/e-post og i PostNord-appen.",
+  
+  // Time descriptions  
+  "2-3 days": "2-3 dager",
+  "1-2 days": "1-2 dager",
+  "3-5 days": "3-5 dager"
+}
+
+// Funksjon for å oversette engelsk til norsk
+function translateToNorwegian(text: string): string {
+  return NORWEGIAN_TRANSLATIONS[text as keyof typeof NORWEGIAN_TRANSLATIONS] || text
 }
 
 interface PostNordDeliveryOptionRequest {
@@ -227,11 +252,11 @@ export async function calculateShipping(params: ShippingParams) {
         
         return {
           id: `${serviceCode}-${option.bookingInstructions?.deliveryOptionId || Math.random()}`,
-          name: option.descriptiveTexts?.checkout?.title || serviceInfo.name,
-          description: option.descriptiveTexts?.checkout?.briefDescription || serviceInfo.description,
+          name: translateToNorwegian(option.descriptiveTexts?.checkout?.title || serviceInfo.name),
+          description: translateToNorwegian(option.descriptiveTexts?.checkout?.briefDescription || serviceInfo.description),
           price: serviceInfo.defaultPrice, // PostNord returnerer ikke priser i delivery options
           currency: 'NOK',
-          estimatedDelivery: option.deliveryTime?.dayRange?.days || option.deliveryTime?.date?.latest || 'Ukjent',
+          estimatedDelivery: translateToNorwegian(option.deliveryTime?.dayRange?.days || option.deliveryTime?.date?.latest || 'Ukjent'),
           carrier: 'PostNord',
           type: deliveryType,
           service: serviceCode,
@@ -246,7 +271,7 @@ export async function calculateShipping(params: ShippingParams) {
           nordicSwanEcoLabel: option.sustainability?.nordicSwanEcoLabel || false,
           
           // Friendly delivery info
-          friendlyDeliveryInfo: option.descriptiveTexts?.checkout?.friendlyDeliveryInfo,
+          friendlyDeliveryInfo: translateToNorwegian(option.descriptiveTexts?.checkout?.friendlyDeliveryInfo || ''),
           
           // Keep original data for debugging
           postNordData: option
@@ -271,25 +296,28 @@ export async function calculateShipping(params: ShippingParams) {
         description: 'Levering til postkasse (3-5 virkedager)',
         price: 59,
         currency: 'NOK',
-        estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        estimatedDelivery: '3-5 dager',
+        carrier: 'PostNord',
         type: 'economy'
       },
       {
         id: 'mypackcollect',
-        name: 'MyPack Collect',
+        name: 'Henting på utleveringssted',
         description: 'Pakke til nærmeste hentested (2-4 virkedager)',
         price: 79,
         currency: 'NOK',
-        estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        estimatedDelivery: '2-4 dager',
+        carrier: 'PostNord',
         type: 'pickup'
       },
       {
         id: 'mypackhome',
-        name: 'MyPack Home',
+        name: 'Hjemlevering',
         description: 'Levering til døren på dagtid (2-4 virkedager)',
         price: 99,
         currency: 'NOK',
-        estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        estimatedDelivery: '2-4 dager',
+        carrier: 'PostNord',
         type: 'home'
       },
       {
@@ -298,7 +326,8 @@ export async function calculateShipping(params: ShippingParams) {
         description: 'Rask levering (1-2 virkedager)',
         price: 249,
         currency: 'NOK',
-        estimatedDelivery: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        estimatedDelivery: '1-2 dager',
+        carrier: 'PostNord',
         type: 'express'
       }
     ]
