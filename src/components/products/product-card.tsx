@@ -19,8 +19,7 @@ export function ProductCard({ product }: ProductCardProps) {
     <div className="group relative rounded-lg border bg-background p-2">
       <Link
         href={`/products/${product.id}`}
-        className="relative aspect-square"
-        legacyBehavior>
+        className="relative aspect-square">
         <div className="relative h-full w-full overflow-hidden rounded-lg">
           <Image
             src={product.imageUrls.split(",")[0]} // Tar første bilde fra imageUrls
@@ -32,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </Link>
       <div className="p-4">
-        <Link href={`/products/${product.id}`} legacyBehavior>
+        <Link href={`/products/${product.id}`}>
           <h3 className="font-medium line-clamp-1 group-hover:underline">
             {product.name}
           </h3>

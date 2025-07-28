@@ -62,11 +62,11 @@ export function CartNotification({ product, onDismiss }: CartNotificationProps) 
           </div>
 
           <div className="space-y-4 mt-8">
-            <Link href="/checkout" legacyBehavior>
-              <Button size="lg" className="w-full" onClick={handleClose}>
+            <Button asChild size="lg" className="w-full" onClick={handleClose}>
+              <Link href="/checkout">
                 Gå til kassen
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <Button 
               variant="outline" 
               size="lg" 

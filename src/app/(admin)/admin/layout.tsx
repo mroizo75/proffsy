@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession, signOut } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Package, ShoppingBag, Users, Settings, Home, Menu, LogOut, User, Percent, Palette } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -91,8 +91,7 @@ function SidebarNav({ items, setOpen, className }: SidebarNavProps) {
               isActive 
                 ? "bg-primary text-primary-foreground" 
                 : "hover:bg-accent"
-            )}
-            legacyBehavior>
+            )}>
             <item.icon className="h-4 w-4" />
             {item.title}
           </Link>
@@ -108,6 +107,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const { data: session, status } = useSession()
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -124,12 +124,28 @@ export default function AdminLayout({
     }
   }, [])
 
+  useEffect(() => {
+    if (status === "loading") return
+    
+    if (!session?.user || session.user.role !== "ADMIN") {
+      router.push("/login")
+    }
+  }, [session, status, router])
+
   if (status === "loading") {
-    return <div>Laster...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>Laster...</div>
+      </div>
+    )
   }
 
   if (!session?.user || session.user.role !== "ADMIN") {
-    redirect("/")
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>Omdirigerer...</div>
+      </div>
+    )
   }
 
   return (

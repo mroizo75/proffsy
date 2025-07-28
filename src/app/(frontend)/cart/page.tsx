@@ -21,9 +21,9 @@ export default function CartPage() {
           <p className="text-muted-foreground mb-8">
             Du har ingen produkter i handlekurven din.
           </p>
-          <Link href="/products" legacyBehavior>
-            <Button>Se våre produkter</Button>
-          </Link>
+          <Button asChild>
+            <Link href="/products">Se våre produkter</Link>
+          </Button>
         </div>
       </div>
     );
@@ -109,11 +109,11 @@ export default function CartPage() {
               </div>
             </div>
             
-            <Link href="/checkout" prefetch={false} legacyBehavior>
-              <Button className="w-full mt-6" size="lg">
+            <Button asChild className="w-full mt-6" size="lg">
+              <Link href="/checkout" prefetch={false}>
                 Gå til kassen ({formatPrice(subtotal)})
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

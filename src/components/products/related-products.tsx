@@ -38,8 +38,7 @@ export async function RelatedProducts({ categoryIds, currentProductId }: Related
           <Link
             key={product.id}
             href={`/products/${product.id}`}
-            className="group"
-            legacyBehavior>
+            className="group">
             <div className="aspect-square relative rounded-lg overflow-hidden mb-3">
               <Image
                 src={product.images[0]?.url || '/placeholder.png'}

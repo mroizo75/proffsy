@@ -1,28 +1,65 @@
-import { RateLimiterRedis } from 'rate-limiter-flexible'
-import { client } from './redis'
+import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible'
+import { getRedisClient } from './redis'
 
-// 5 forsøk per 1 time per IP
-export const passwordResetLimiter = new RateLimiterRedis({
-  storeClient: client,
-  keyPrefix: 'password_reset',
-  points: 5, // Antall forsøk
-  duration: 3600, // 1 time i sekunder
-  blockDuration: 3600, // Blokkering i 1 time etter for mange forsøk
-  inMemoryBlockOnConsumed: 5, // Blokker etter 5 forsøk
-})
+let passwordResetLimiter: RateLimiterRedis | RateLimiterMemory | null = null
+let emailLimiter: RateLimiterRedis | RateLimiterMemory | null = null
 
-// 3 forsøk per 1 time per e-post
-export const emailLimiter = new RateLimiterRedis({
-  storeClient: client,
-  keyPrefix: 'email_limit',
-  points: 3,
-  duration: 3600,
-  blockDuration: 3600,
-  inMemoryBlockOnConsumed: 3, // Blokker etter 3 forsøk
-})
+async function initializeLimiters() {
+  if (passwordResetLimiter && emailLimiter) return
+
+  const redisClient = await getRedisClient()
+
+  if (redisClient) {
+    // Bruk Redis-basert rate limiting
+    passwordResetLimiter = new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'password_reset',
+      points: 5,
+      duration: 3600,
+      blockDuration: 3600,
+      inMemoryBlockOnConsumed: 5,
+    })
+
+    emailLimiter = new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'email_limit',
+      points: 3,
+      duration: 3600,
+      blockDuration: 3600,
+      inMemoryBlockOnConsumed: 3,
+    })
+  } else {
+    // Fallback til in-memory rate limiting
+    console.warn('Using in-memory rate limiting (Redis unavailable)')
+    
+    passwordResetLimiter = new RateLimiterMemory({
+      keyPrefix: 'password_reset',
+      points: 5,
+      duration: 3600,
+      blockDuration: 3600,
+    })
+
+    emailLimiter = new RateLimiterMemory({
+      keyPrefix: 'email_limit',
+      points: 3,
+      duration: 3600,
+      blockDuration: 3600,
+    })
+  }
+}
+
+export async function getPasswordResetLimiter() {
+  await initializeLimiters()
+  return passwordResetLimiter!
+}
+
+export async function getEmailLimiter() {
+  await initializeLimiters()
+  return emailLimiter!
+}
 
 // Hjelpefunksjon for å sjekke gjenværende forsøk
-export async function getRemainingAttempts(key: string, limiter: RateLimiterRedis) {
+export async function getRemainingAttempts(key: string, limiter: RateLimiterRedis | RateLimiterMemory) {
   try {
     const res = await limiter.get(key)
     return res ? Math.max(0, limiter.points - res.consumedPoints) : limiter.points

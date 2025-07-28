@@ -33,7 +33,7 @@ export default async function EditProductPage({ params }: PageProps) {
     <div className="container py-8">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="outline" size="sm" asChild>
-          <Link href="/admin/products" className="flex items-center gap-2" legacyBehavior>
+          <Link href="/admin/products" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             Tilbake til produkter
           </Link>

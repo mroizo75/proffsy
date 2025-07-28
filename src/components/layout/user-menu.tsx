@@ -41,33 +41,33 @@ export function UserMenu() {
             <DropdownMenuGroup>
               {session.user?.role === "ADMIN" && (
                 <>
-                  <Link href="/admin" legacyBehavior>
-                    <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/admin" >
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Admin Dashboard</span>
-                    </DropdownMenuItem>
-                  </Link>
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                 </>
               )}
-              <Link href="/profile" legacyBehavior>
-                <DropdownMenuItem className="cursor-pointer">
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href="/profile" >
                   <UserCircle className="mr-2 h-4 w-4" />
                   <span>Min profil</span>
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/orders" legacyBehavior>
-                <DropdownMenuItem className="cursor-pointer">
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href="/orders" >
                   <Package className="mr-2 h-4 w-4" />
                   <span>Mine ordrer</span>
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/wishlist" legacyBehavior>
-                <DropdownMenuItem className="cursor-pointer">
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href="/wishlist" >
                   <ShoppingBag className="mr-2 h-4 w-4" />
                   <span>Ønskeliste</span>
-                </DropdownMenuItem>
-              </Link>
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
@@ -80,18 +80,18 @@ export function UserMenu() {
           </>
         ) : (
           <>
-            <Link href="/login" legacyBehavior>
-              <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href="/login" >
                 <User className="mr-2 h-4 w-4" />
                 <span>Logg inn</span>
-              </DropdownMenuItem>
-            </Link>
-            <Link href="/register" legacyBehavior>
-              <DropdownMenuItem className="cursor-pointer">
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href="/register" >
                 <UserCircle className="mr-2 h-4 w-4" />
                 <span>Registrer deg</span>
-              </DropdownMenuItem>
-            </Link>
+              </Link>
+            </DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>

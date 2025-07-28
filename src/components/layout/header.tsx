@@ -25,7 +25,7 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex flex-1 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2" legacyBehavior>
+          <Link href="/" className="flex items-center space-x-2" >
             <span className="text-xl font-bold">PROFFSY</span>
           </Link>
 
@@ -36,7 +36,7 @@ export function Header() {
                 key={item.name}
                 href={item.href}
                 className="text-sm font-medium hover:underline"
-                legacyBehavior>
+                >
                 {item.name}
               </Link>
             ))}

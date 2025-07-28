@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import crypto from "crypto"
 import { sendPasswordResetEmail } from "@/lib/mail" // Vi må lage denne
-import { passwordResetLimiter, emailLimiter, getRemainingAttempts } from "@/lib/rate-limit"
+import { getPasswordResetLimiter, getEmailLimiter, getRemainingAttempts } from "@/lib/rate-limit"
 import { logSecurityEvent, checkSuspiciousActivity, getRequestInfo } from "@/lib/security"
 
 export async function POST(req: Request) {
@@ -30,8 +30,9 @@ export async function POST(req: Request) {
     }
 
     // Sjekk IP-basert rate limiting
+    const passwordLimiter = await getPasswordResetLimiter()
     try {
-      await passwordResetLimiter.consume(ip)
+      await passwordLimiter.consume(ip)
     } catch (error: any) {
       const remainingTime = error.msBeforeNext ? Math.ceil(error.msBeforeNext / 1000 / 60) : 60
       
@@ -54,8 +55,9 @@ export async function POST(req: Request) {
     }
 
     // Sjekk e-post-basert rate limiting
+    const emailLimiterInstance = await getEmailLimiter()
     try {
-      await emailLimiter.consume(email)
+      await emailLimiterInstance.consume(email)
     } catch (error: any) {
       const remainingTime = error.msBeforeNext ? Math.ceil(error.msBeforeNext / 1000 / 60) : 60
       

@@ -52,7 +52,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         <Link
           href="/categories"
           className="flex items-center text-sm text-muted-foreground mb-4 hover:text-foreground transition-colors"
-          legacyBehavior>
+          >
           <ChevronLeft className="h-4 w-4 mr-1" />
           Tilbake til kategorier
         </Link>

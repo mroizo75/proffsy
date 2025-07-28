@@ -28,8 +28,7 @@ export default async function CategoriesPage() {
           <Link
             key={category.id}
             href={`/categories/${category.id}`}
-            className="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
-            legacyBehavior>
+            className="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
             <div className="relative aspect-[2/1] w-full overflow-hidden rounded-t-lg">
               {category.imageUrl ? (
                 <Image

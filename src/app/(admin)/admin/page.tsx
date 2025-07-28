@@ -26,7 +26,7 @@ export default async function AdminDashboard() {
   const session = await getServerSession(authOptions)
   
   if (!session || session.user?.role !== "ADMIN") {
-    redirect("/auth/signin")
+    redirect("/login")
   }
 
   // Hent dagens dato og datoen for 30 dager siden
@@ -65,11 +65,11 @@ export default async function AdminDashboard() {
 
   // Beregn totaler
   const currentMonthRevenue = currentMonthOrders.reduce((total, order) => {
-    return total + order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    return total + order.items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0)
   }, 0)
 
   const previousMonthRevenue = previousMonthOrders.reduce((total, order) => {
-    return total + order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    return total + order.items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0)
   }, 0)
 
   // Beregn prosentvis endring
@@ -159,7 +159,7 @@ export default async function AdminDashboard() {
 
   last30DaysOrders.forEach(order => {
     const dateStr = order.createdAt.toISOString().split('T')[0]
-    const orderTotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const orderTotal = order.items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0)
     const currentTotal = dailyRevenue.get(dateStr) || 0
     dailyRevenue.set(dateStr, currentTotal + orderTotal)
   })
@@ -185,7 +185,7 @@ export default async function AdminDashboard() {
     id: order.id,
     name: order.user?.name || 'Ukjent kunde',
     email: order.user?.email || 'Ingen e-post',
-    amount: order.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    amount: order.items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0),
     date: order.createdAt
   }))
 

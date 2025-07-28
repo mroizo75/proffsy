@@ -20,8 +20,7 @@ export const columns: ColumnDef<any>[] = [
     cell: ({ row }) => (
       <Link
         href={`/admin/orders/${row.original.id}`}
-        className="hover:underline"
-        legacyBehavior>
+        className="hover:underline">
         {row.getValue("orderId")}
       </Link>
     ),
@@ -70,7 +69,7 @@ export const columns: ColumnDef<any>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <Link href={`/admin/orders/${order.id}`} legacyBehavior>
+            <Link href={`/admin/orders/${order.id}`}>
               <DropdownMenuItem>
                 <Eye className="mr-2 h-4 w-4" />
                 Se detaljer

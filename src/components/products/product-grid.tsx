@@ -13,8 +13,7 @@ export function ProductGrid({ products }: ProductGridProps) {
         <Link
           key={product.id}
           href={`/products/${product.id}`}
-          className="group block"
-          legacyBehavior>
+          className="group block">
           <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100 mb-3">
             {product.images && product.images.length > 0 ? (
               <Image
