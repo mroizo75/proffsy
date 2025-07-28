@@ -41,7 +41,7 @@ export function UserMenu() {
             <DropdownMenuGroup>
               {session.user?.role === "ADMIN" && (
                 <>
-                  <Link href="/admin">
+                  <Link href="/admin" legacyBehavior>
                     <DropdownMenuItem className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Admin Dashboard</span>
@@ -50,19 +50,19 @@ export function UserMenu() {
                   <DropdownMenuSeparator />
                 </>
               )}
-              <Link href="/profile">
+              <Link href="/profile" legacyBehavior>
                 <DropdownMenuItem className="cursor-pointer">
                   <UserCircle className="mr-2 h-4 w-4" />
                   <span>Min profil</span>
                 </DropdownMenuItem>
               </Link>
-              <Link href="/orders">
+              <Link href="/orders" legacyBehavior>
                 <DropdownMenuItem className="cursor-pointer">
                   <Package className="mr-2 h-4 w-4" />
                   <span>Mine ordrer</span>
                 </DropdownMenuItem>
               </Link>
-              <Link href="/wishlist">
+              <Link href="/wishlist" legacyBehavior>
                 <DropdownMenuItem className="cursor-pointer">
                   <ShoppingBag className="mr-2 h-4 w-4" />
                   <span>Ønskeliste</span>
@@ -80,13 +80,13 @@ export function UserMenu() {
           </>
         ) : (
           <>
-            <Link href="/login">
+            <Link href="/login" legacyBehavior>
               <DropdownMenuItem className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
                 <span>Logg inn</span>
               </DropdownMenuItem>
             </Link>
-            <Link href="/register">
+            <Link href="/register" legacyBehavior>
               <DropdownMenuItem className="cursor-pointer">
                 <UserCircle className="mr-2 h-4 w-4" />
                 <span>Registrer deg</span>
@@ -96,5 +96,5 @@ export function UserMenu() {
         )}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 } 

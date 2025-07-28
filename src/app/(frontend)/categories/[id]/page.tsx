@@ -49,10 +49,10 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   return (
     <div className="container py-12">
       <div className="mb-8">
-        <Link 
+        <Link
           href="/categories"
           className="flex items-center text-sm text-muted-foreground mb-4 hover:text-foreground transition-colors"
-        >
+          legacyBehavior>
           <ChevronLeft className="h-4 w-4 mr-1" />
           Tilbake til kategorier
         </Link>
@@ -64,7 +64,6 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           )}
         </div>
       </div>
-      
       {category.products.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Ingen produkter i denne kategorien ennå.</p>
@@ -73,5 +72,5 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         <ProductGrid products={category.products} />
       )}
     </div>
-  )
+  );
 } 

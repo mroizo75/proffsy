@@ -91,13 +91,12 @@ export function HeroTable() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Hero-seksjoner</h1>
         <Button asChild>
-          <Link href="/admin/hero/new">
+          <Link href="/admin/hero/new" legacyBehavior>
             <Plus className="mr-2 h-4 w-4" />
             Legg til ny
           </Link>
         </Button>
       </div>
-
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -164,12 +163,12 @@ export function HeroTable() {
                         onSuccess={() => mutate('/api/admin/hero/list')}
                       />
                       <Button asChild variant="outline" size="icon" title="Rediger">
-                        <Link href={`/admin/hero/${hero.id}`}>
+                        <Link href={`/admin/hero/${hero.id}`} legacyBehavior>
                           <Edit className="h-4 w-4" />
                         </Link>
                       </Button>
                       <Button asChild variant="outline" size="icon" title="Forhåndsvis">
-                        <Link href={`/`} target="_blank">
+                        <Link href={`/`} target="_blank" legacyBehavior>
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
@@ -219,5 +218,5 @@ export function HeroTable() {
         </Table>
       </div>
     </>
-  )
+  );
 } 

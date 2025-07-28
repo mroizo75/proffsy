@@ -21,18 +21,17 @@ export default function CartPage() {
           <p className="text-muted-foreground mb-8">
             Du har ingen produkter i handlekurven din.
           </p>
-          <Link href="/products">
+          <Link href="/products" legacyBehavior>
             <Button>Se våre produkter</Button>
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-8">Handlekurv</h1>
-      
       <div className="grid gap-8 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <div className="space-y-4">
@@ -111,15 +110,13 @@ export default function CartPage() {
             </div>
             
             <Link href="/checkout" prefetch={false} legacyBehavior>
-              <a>
-                <Button className="w-full mt-6" size="lg">
-                  Gå til kassen ({formatPrice(subtotal)})
-                </Button>
-              </a>
+              <Button className="w-full mt-6" size="lg">
+                Gå til kassen ({formatPrice(subtotal)})
+              </Button>
             </Link>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 } 

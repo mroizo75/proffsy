@@ -17,7 +17,10 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="group relative rounded-lg border bg-background p-2">
-      <Link href={`/products/${product.id}`} className="relative aspect-square">
+      <Link
+        href={`/products/${product.id}`}
+        className="relative aspect-square"
+        legacyBehavior>
         <div className="relative h-full w-full overflow-hidden rounded-lg">
           <Image
             src={product.imageUrls.split(",")[0]} // Tar første bilde fra imageUrls
@@ -29,7 +32,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </Link>
       <div className="p-4">
-        <Link href={`/products/${product.id}`}>
+        <Link href={`/products/${product.id}`} legacyBehavior>
           <h3 className="font-medium line-clamp-1 group-hover:underline">
             {product.name}
           </h3>
@@ -45,5 +48,5 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
     </div>
-  )
+  );
 } 

@@ -53,7 +53,7 @@ export const columns: ColumnDef<Product>[] = [
     id: "actions",
     cell: ({ row }) => (
       <Button asChild size="sm" variant="ghost">
-        <Link href={`/admin/products/${row.original.id}`}>
+        <Link href={`/admin/products/${row.original.id}`} legacyBehavior>
           <Eye className="h-4 w-4 mr-2" />
           Se produkt
         </Link>

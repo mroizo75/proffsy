@@ -39,13 +39,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     <div className="container py-8">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="outline" size="sm" asChild>
-          <Link href="/admin/orders" className="flex items-center gap-2">
+          <Link href="/admin/orders" className="flex items-center gap-2" legacyBehavior>
             <ArrowLeft className="h-4 w-4" />
             Tilbake til ordrer
           </Link>
         </Button>
       </div>
-
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Ordre #{sanitizedOrder.orderId}</h1>
         <div className="flex gap-4">
@@ -53,7 +52,6 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           <PrintShippingLabel order={sanitizedOrder} />
         </div>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Kundedetaljer</h2>
@@ -101,5 +99,5 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         </Card>
       </div>
     </div>
-  )
+  );
 } 

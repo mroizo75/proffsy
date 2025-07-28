@@ -128,7 +128,7 @@ export const columns: ColumnDef<Order>[] = [
     id: "actions",
     cell: ({ row }) => (
       <Button asChild size="sm" variant="ghost">
-        <Link href={`/admin/orders/${row.original.orderId}`}>
+        <Link href={`/admin/orders/${row.original.orderId}`} legacyBehavior>
           <Eye className="h-4 w-4 mr-2" />
           Se ordre
         </Link>

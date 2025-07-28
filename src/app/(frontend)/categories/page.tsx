@@ -23,14 +23,13 @@ export default async function CategoriesPage() {
   return (
     <div className="container py-12">
       <h1 className="text-3xl font-bold mb-8">Alle kategorier</h1>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {categories.map((category) => (
-          <Link 
+          <Link
             key={category.id}
             href={`/categories/${category.id}`}
             className="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
-          >
+            legacyBehavior>
             <div className="relative aspect-[2/1] w-full overflow-hidden rounded-t-lg">
               {category.imageUrl ? (
                 <Image
@@ -59,5 +58,5 @@ export default async function CategoriesPage() {
         ))}
       </div>
     </div>
-  )
+  );
 } 

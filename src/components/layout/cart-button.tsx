@@ -11,7 +11,7 @@ export function CartButton() {
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
-    <Link href="/cart">
+    <Link href="/cart" legacyBehavior>
       <Button variant="ghost" size="icon" className="relative">
         <ShoppingCart className="h-5 w-5" />
         {itemCount > 0 && (
@@ -21,5 +21,5 @@ export function CartButton() {
         )}
       </Button>
     </Link>
-  )
+  );
 } 

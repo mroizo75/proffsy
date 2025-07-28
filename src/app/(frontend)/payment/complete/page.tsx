@@ -86,7 +86,7 @@ function PaymentCompletion() {
             </h1>
             <p className="text-muted-foreground mb-6">{error}</p>
             <Button asChild>
-              <Link href="/checkout">
+              <Link href="/checkout" legacyBehavior>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Tilbake til kassen
               </Link>
@@ -94,7 +94,7 @@ function PaymentCompletion() {
           </div>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -144,7 +144,7 @@ function PaymentCompletion() {
 
           <div className="flex justify-center pt-6">
             <Button asChild>
-              <Link href="/products">
+              <Link href="/products" legacyBehavior>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Fortsett å handle
               </Link>
@@ -153,7 +153,7 @@ function PaymentCompletion() {
         </div>
       </Card>
     </div>
-  )
+  );
 }
 
 export default function Page() {

@@ -18,7 +18,10 @@ export const columns: ColumnDef<any>[] = [
     accessorKey: "orderId",
     header: "Ordrenr",
     cell: ({ row }) => (
-      <Link href={`/admin/orders/${row.original.id}`} className="hover:underline">
+      <Link
+        href={`/admin/orders/${row.original.id}`}
+        className="hover:underline"
+        legacyBehavior>
         {row.getValue("orderId")}
       </Link>
     ),
@@ -67,7 +70,7 @@ export const columns: ColumnDef<any>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <Link href={`/admin/orders/${order.id}`}>
+            <Link href={`/admin/orders/${order.id}`} legacyBehavior>
               <DropdownMenuItem>
                 <Eye className="mr-2 h-4 w-4" />
                 Se detaljer
@@ -75,7 +78,7 @@ export const columns: ColumnDef<any>[] = [
             </Link>
           </DropdownMenuContent>
         </DropdownMenu>
-      )
+      );
     },
   },
 ] 

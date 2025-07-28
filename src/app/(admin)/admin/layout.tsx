@@ -92,14 +92,14 @@ function SidebarNav({ items, setOpen, className }: SidebarNavProps) {
                 ? "bg-primary text-primary-foreground" 
                 : "hover:bg-accent"
             )}
-          >
+            legacyBehavior>
             <item.icon className="h-4 w-4" />
             {item.title}
           </Link>
-        )
+        );
       })}
     </nav>
-  )
+  );
 }
 
 export default function AdminLayout({

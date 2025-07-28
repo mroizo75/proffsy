@@ -50,10 +50,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div className="group bg-card hover:bg-card/80 dark:bg-card/90 dark:hover:bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-200">
-      <Link 
-        href={`/products/${product.id}`}
-        className="block"
-      >
+      <Link href={`/products/${product.id}`} className="block" legacyBehavior>
         <div className="aspect-[4/3] relative overflow-hidden rounded-t-xl bg-muted dark:bg-muted/50">
           {product.images[0] ? (
             <Image
@@ -69,9 +66,8 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
       </Link>
-      
       <div className="p-6">
-        <Link href={`/products/${product.id}`}>
+        <Link href={`/products/${product.id}`} legacyBehavior>
           <h3 className="text-lg font-medium group-hover:text-primary dark:group-hover:text-primary/90 line-clamp-2 min-h-[3.5rem]">
             {product.name}
           </h3>
@@ -91,5 +87,5 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
     </div>
-  )
+  );
 } 
