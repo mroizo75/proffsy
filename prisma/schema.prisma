@@ -165,25 +165,41 @@ enum Severity {
 }
 
 model Order {
-  id              String          @id @default(cuid())
-  orderId         String          @unique
-  userId          String
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status          OrderStatus     @default(PENDING)
-  paymentStatus   PaymentStatus   @default(PENDING)
-  paymentMethod   String?
-  paymentId       String?         @unique
-  totalAmount     Decimal
-  shippingAmount  Decimal
-  customerEmail   String
-  customerPhone   String
-  items           OrderItem[]
-  shippingAddress ShippingAddress?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                String          @id @default(cuid())
+  orderId           String          @unique
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status            OrderStatus     @default(PENDING)
+  paymentStatus     PaymentStatus   @default(PENDING)
+  paymentMethod     String?
+  paymentId         String?         @unique
+  totalAmount       Decimal
+  shippingAmount    Decimal
+  customerEmail     String
+  customerPhone     String
+  
+  // Tracking og forsendelse informasjon
+  trackingNumber    String?
+  carrier           String?         @default("PostNord")
+  trackingUrl       String?
+  shippingStatus    ShippingStatus? @default(PENDING)
+  estimatedDelivery DateTime?
+  actualDelivery    DateTime?
+  shippingMethod    String?         // Home delivery, pickup point, etc.
+  shippingLocation  Json?           // For pickup points - name, address, etc.
+  
+  // Notification tracking
+  emailsSent        Json?           // Track which emails have been sent
+  lastNotification  DateTime?
+  
+  items             OrderItem[]
+  shippingAddress   ShippingAddress?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@index([userId])
   @@index([orderId])
+  @@index([trackingNumber])
 }
 
 model OrderItem {
@@ -226,7 +242,17 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+}
 
+enum ShippingStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+  RETURNED
 }
 
 model Hero {
