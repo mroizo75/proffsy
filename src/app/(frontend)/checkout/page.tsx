@@ -4,16 +4,17 @@ import { useState, useEffect } from "react"
 import { useCart } from "@/lib/hooks/use-cart"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { ShippingRate, CustomerInfo } from "@/types/checkout"
-import { Loader2 } from "lucide-react"
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { formatPrice } from "@/lib/utils"
 import Image from "next/image"
 import { Card } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
+import { ShippingOptionsList } from "@/components/checkout/shipping-group"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const customerSchema = z.object({
   firstName: z.string().min(2, "Fornavn må være minst 2 tegn"),
@@ -35,10 +36,14 @@ export default function CheckoutPage() {
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([])
   const [selectedShipping, setSelectedShipping] = useState<ShippingRate>()
   const [isLoading, setIsLoading] = useState(false)
+  const [shippingError, setShippingError] = useState<string>()
+  const [shippingSource, setShippingSource] = useState<string>()
 
-  const { register, handleSubmit, formState: { errors } } = useForm<CustomerInfo>({
+  const { register, handleSubmit, formState: { errors }, watch } = useForm<CustomerInfo>({
     resolver: zodResolver(customerSchema)
   })
+
+  const watchedAddress = watch("address")
 
   useEffect(() => {
     if (items.length === 0) {
@@ -52,6 +57,10 @@ export default function CheckoutPage() {
 
   const calculateShipping = async (data: CustomerInfo) => {
     setIsLoading(true)
+    setShippingError(undefined)
+    setShippingRates([])
+    setSelectedShipping(undefined)
+    
     try {
       const response = await fetch("/api/shipping", {
         method: "POST",
@@ -62,12 +71,27 @@ export default function CheckoutPage() {
         })
       })
       
-      if (!response.ok) throw new Error("Feil ved henting av fraktpriser")
+      if (!response.ok) {
+        throw new Error("Feil ved henting av fraktpriser")
+      }
       
-      const rates = await response.json()
-      setShippingRates(rates)
+      const result = await response.json()
+      
+      if (result.rates?.success && result.rates.options) {
+        setShippingRates(result.rates.options)
+        setShippingSource(result.rates.source)
+        
+        // Auto-select cheapest home delivery if available
+        const homeDelivery = result.rates.options.find((rate: ShippingRate) => rate.type === 'home')
+        if (homeDelivery) {
+          setSelectedShipping(homeDelivery)
+        }
+      } else {
+        throw new Error("Ingen fraktmuligheter funnet")
+      }
     } catch (error) {
       console.error("Shipping calculation error:", error)
+      setShippingError(error instanceof Error ? error.message : "Feil ved beregning av frakt")
     } finally {
       setIsLoading(false)
     }
@@ -181,53 +205,56 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="w-full">
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Beregner frakt...
+                    Henter leveringsalternativer...
                   </>
                 ) : (
-                  "Beregn frakt"
+                  "Finn leveringsalternativer"
                 )}
               </Button>
             </form>
           </Card>
 
+          {/* Shipping error */}
+          {shippingError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{shippingError}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Shipping success with PostNord info */}
           {shippingRates.length > 0 && (
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Velg fraktmetode</h2>
-              <RadioGroup
-                value={selectedShipping?.id}
-                onValueChange={(value) => 
-                  setSelectedShipping(shippingRates.find(rate => rate.id === value))
-                }
-              >
-                <div className="space-y-4">
-                  {shippingRates.map((rate) => (
-                    <div key={rate.id} className="flex items-center space-x-2">
-                      <RadioGroupItem value={rate.id} id={rate.id} />
-                      <label htmlFor={rate.id} className="flex-1">
-                        <div className="flex justify-between">
-                          <div>
-                            <span className="font-medium">{rate.name}</span>
-                            <p className="text-sm text-muted-foreground">
-                              {rate.description}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {rate.estimatedDelivery}
-                            </p>
-                          </div>
-                          <span className="font-medium">
-                            {formatPrice(rate.price)}
-                          </span>
-                        </div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </RadioGroup>
-            </Card>
+            <>
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Fant {shippingRates.length} leveringsalternativer{" "}
+                  {shippingSource === 'postnord-api' && (
+                    <span className="text-green-600 font-medium">
+                      (Live data fra PostNord ✓)
+                    </span>
+                  )}
+                  {shippingSource === 'fallback' && (
+                    <span className="text-amber-600 font-medium">
+                      (Standardpriser)
+                    </span>
+                  )}
+                </AlertDescription>
+              </Alert>
+
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-4">Velg leveringsmetode</h2>
+                <ShippingOptionsList
+                  options={shippingRates}
+                  selectedOptionId={selectedShipping?.id}
+                  onSelectOption={setSelectedShipping}
+                />
+              </Card>
+            </>
           )}
         </div>
 
@@ -279,6 +306,29 @@ export default function CheckoutPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Selected shipping details */}
+              {selectedShipping?.location && (
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-2">Valgt hentested:</h3>
+                  <div className="text-sm space-y-1">
+                    <p className="font-medium">{selectedShipping.location.name}</p>
+                    <p className="text-muted-foreground">
+                      {selectedShipping.location.address.streetName} {selectedShipping.location.address.streetNumber}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {selectedShipping.location.address.postCode} {selectedShipping.location.address.city}
+                    </p>
+                    {selectedShipping.location.distanceFromRecipientAddress && (
+                      <p className="text-xs text-muted-foreground">
+                        📍 {selectedShipping.location.distanceFromRecipientAddress < 1000 
+                          ? `${selectedShipping.location.distanceFromRecipientAddress}m`
+                          : `${(selectedShipping.location.distanceFromRecipientAddress / 1000).toFixed(1)}km`} unna
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {selectedShipping && (

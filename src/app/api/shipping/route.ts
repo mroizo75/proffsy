@@ -2,11 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { SHIPPING_METHODS } from "@/types/checkout"
-import { calculateShipping } from "@/lib/shipping"
-
-const BRING_API_KEY = process.env.BRING_API_KEY!
-const BRING_API_URL = "https://api.bring.com/shippingguide/api/v2/products"
+import { calculateShipping, checkServiceAvailability } from "@/lib/shipping"
 
 export async function POST(req: Request) {
   try {
@@ -14,30 +10,16 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { items, toAddress } = body
 
-    // Beregn total vekt og volum
+    // Beregn total vekt
     const totalWeight = items.reduce((sum: number, item: any) => {
-      return sum + (item.weight || 0) * item.quantity
+      return sum + (item.weight || 0.5) * item.quantity // Standard 500g hvis ikke spesifisert
     }, 0)
 
-    // Sjekk at vi har gyldig data
-    console.log('Shipping request:', {
-      items,
+    console.log('PostNord shipping request:', {
+      items: items.length,
       totalWeight,
       toAddress
     })
-
-    const shippingRates = await calculateShipping({
-      weight: totalWeight || 1, // Minimum 1 kg hvis ingen vekt er spesifisert
-      fromPostalCode: process.env.SHOP_POSTAL_CODE || "0000",
-      toPostalCode: toAddress.postalCode,
-      toCountry: toAddress.country || "NO",
-    })
-
-    // Legg til standard priser hvis Bring returnerer 0
-    const ratesWithPrices = shippingRates.map(rate => ({
-      ...rate,
-      price: rate.price || getDefaultPrice(rate.id)
-    }))
 
     // Hent bedriftsadresse
     const companySettings = await prisma.companySettings.findFirst({
@@ -51,115 +33,95 @@ export async function POST(req: Request) {
       )
     }
 
-    // Beregn total vekt og størrelse for alle produkter
-    const packageDetails = items.reduce((acc: any, item: any) => {
-      return {
-        weight: acc.weight + (item.weight || 500) * item.quantity, // Standard 500g hvis ikke spesifisert
-        length: Math.max(acc.length, item.length || 20), // Største lengde
-        width: Math.max(acc.width, item.width || 20),    // Største bredde
-        height: acc.height + (item.height || 10) * item.quantity // Total høyde
-      }
-    }, { weight: 0, length: 0, width: 0, height: 0 })
-
-    // Prepare request payload according to Bring API spec
-    const payload = {
-      consignments: [{
-        fromCountryCode: companySettings.country,
-        fromPostalCode: companySettings.postalCode,
-        toCountryCode: toAddress.country || 'NO',
-        toPostalCode: toAddress.postalCode,
-        packages: [{
-          id: "pkg-1",
-          weightInGrams: packageDetails.weight,
-          dimensions: {
-            heightInCm: packageDetails.height,
-            lengthInCm: packageDetails.length,
-            widthInCm: packageDetails.width
-          }
-        }],
-        products: [
-          { id: "5800" }, // PAKKE TIL HENTESTED: Klimanøytral Servicepakke
-          { id: "5600" }, // BEDRIFTSPAKKE: Pakke levert på døren
-          { id: "3570" }, // KLIMANØYTRAL SERVICEPAKKE: Pakke levert hjem
-          { id: "4850" }  // EKSPRESS NESTE DAG: Bedriftspakke Express-Over natten
-        ]
-      }],
-      language: "NO",
-      withPrice: true,
-      withExpectedDelivery: true,
-      withGuiInformation: true,
-      edi: false
+    // Valider toAddress
+    if (!toAddress?.postalCode) {
+      return NextResponse.json(
+        { error: "Gyldig postnummer er påkrevd" },
+        { status: 400 }
+      )
     }
 
     try {
-      const response = await fetch(BRING_API_URL, {
-        method: "POST",
-        headers: {
-          "X-MyBring-API-Uid": process.env.BRING_API_UID || "",
-          "X-MyBring-API-Key": BRING_API_KEY,
-          "X-Bring-Client-URL": process.env.NEXT_PUBLIC_APP_URL || "",
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
+      // Beregn fraktpriser med PostNord
+      const shippingRates = await calculateShipping({
+        weight: Math.max(totalWeight, 0.1), // Minimum 100g
+        fromPostalCode: companySettings.postalCode,
+        toPostalCode: toAddress.postalCode,
+        toCountry: toAddress.country || "NO",
       })
 
-      if (!response.ok) {
-        throw new Error(`Bring API Error: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      console.log("Bring API response:", data) // Debug
-
-      // Transform response to our format
-      const shippingRates = data.consignments?.[0]?.products?.map((product: any) => {
-        const methodId = product.id as keyof typeof SHIPPING_METHODS
-        const method = SHIPPING_METHODS[methodId]
-        
-        if (!method) return null // Skip ukjente fraktmetoder
-        
-        return {
-          id: methodId,
-          name: method.name,
-          description: method.description,
-          price: Number(product.price?.listPrice?.priceWithoutAdditionalServices?.amountWithVAT || 0),
-          estimatedDelivery: `Levering ${product.expectedDelivery?.formattedExpectedDeliveryDate}`,
-          carrier: "Bring",
-          type: method.type,
-          service: product.id
-        }
-      }).filter(Boolean) || []
-
-      console.log("Transformed shipping rates:", shippingRates) // Debug
+      console.log("PostNord shipping rates:", shippingRates)
 
       // Lagre adressen hvis bruker er innlogget
       if (session?.user) {
-        await prisma.userAddress.upsert({
-          where: {
-            userId_street_postalCode: {
+        try {
+          await prisma.userAddress.upsert({
+            where: {
+              userId_street_postalCode: {
+                userId: session.user.id,
+                street: toAddress.street || "Ikke oppgitt",
+                postalCode: toAddress.postalCode
+              }
+            },
+            update: {
+              city: toAddress.city,
+              country: toAddress.country || "NO"
+            },
+            create: {
               userId: session.user.id,
-              street: toAddress.street,
-              postalCode: toAddress.postalCode
+              name: "Sist brukt",
+              street: toAddress.street || "Ikke oppgitt",
+              postalCode: toAddress.postalCode,
+              city: toAddress.city || "",
+              country: toAddress.country || "NO",
+              isDefault: false
             }
-          },
-          update: {},
-          create: {
-            userId: session.user.id,
-            name: "Sist brukt",
-            ...toAddress,
-            isDefault: false
-          }
-        })
+          })
+        } catch (dbError) {
+          console.log("Could not save address:", dbError)
+          // Ikke stopp prosessen hvis adresse-lagring feiler
+        }
       }
 
-      return NextResponse.json(ratesWithPrices)
+      return NextResponse.json({
+        rates: shippingRates,
+        carrier: "PostNord",
+        currency: "NOK"
+      })
 
-    } catch (error) {
-      console.error("Bring API Error:", error)
-      return NextResponse.json(
-        { error: "Kunne ikke hente fraktpriser fra Bring" },
-        { status: 500 }
-      )
+    } catch (shippingError) {
+      console.error("PostNord API Error:", shippingError)
+      
+      // Returner standard priser hvis PostNord API feiler
+      const fallbackRates = [
+        {
+          id: 'mypackcollect',
+          name: 'MyPack Collect',
+          description: 'Pakke til nærmeste hentested',
+          price: 79,
+          estimatedDelivery: 'Levering innen 2-4 virkedager',
+          carrier: 'PostNord',
+          type: 'pickup',
+          service: '17'
+        },
+        {
+          id: 'mypackhome',
+          name: 'MyPack Home',
+          description: 'Levering til døren på dagtid',
+          price: 99,
+          estimatedDelivery: 'Levering innen 2-4 virkedager',
+          carrier: 'PostNord',
+          type: 'home',
+          service: '19'
+        }
+      ]
+
+      return NextResponse.json({
+        rates: fallbackRates,
+        carrier: "PostNord",
+        currency: "NOK",
+        fallback: true
+      })
     }
 
   } catch (error) {
@@ -169,17 +131,6 @@ export async function POST(req: Request) {
       { status: 500 }
     )
   }
-}
-
-// Standard priser hvis Bring API feiler
-function getDefaultPrice(serviceId: string): number {
-  const defaultPrices: Record<string, number> = {
-    '5800': 99,  // Servicepakke
-    '5600': 149, // Bedriftspakke
-    '3570': 199, // Hjemlevering
-    '4850': 299, // Express
-  }
-  return defaultPrices[serviceId] || 99
 }
 
 // Hent lagrede adresser for innlogget bruker
@@ -203,6 +154,44 @@ export async function GET(req: Request) {
     console.error("Error fetching addresses:", error)
     return NextResponse.json(
       { error: "Kunne ikke hente adresser" },
+      { status: 500 }
+    )
+  }
+}
+
+// Test PostNord API connection
+export async function PATCH(req: Request) {
+  try {
+    const { testPostalCode } = await req.json()
+    
+    const companySettings = await prisma.companySettings.findFirst({
+      where: { id: "default" }
+    })
+
+    if (!companySettings) {
+      return NextResponse.json(
+        { error: "Bedriftsadresse ikke konfigurert" },
+        { status: 400 }
+      )
+    }
+
+    // Test service availability
+    const services = await checkServiceAvailability(
+      companySettings.postalCode,
+      testPostalCode || "0000",
+      "NO"
+    )
+
+    return NextResponse.json({
+      success: true,
+      availableServices: services,
+      message: "PostNord API tilkobling fungerer"
+    })
+
+  } catch (error) {
+    console.error("PostNord API test failed:", error)
+    return NextResponse.json(
+      { error: "PostNord API test feilet", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

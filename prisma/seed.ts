@@ -46,6 +46,25 @@ async function main() {
     })
   }
 
+  // Opprett standard bedriftsinnstillinger
+  const companySettings = await prisma.companySettings.upsert({
+    where: { id: "default" },
+    update: {},
+    create: {
+      id: "default",
+      companyName: "PROFFSY AS",
+      street: "Peckels gate 12b",
+      postalCode: "3616",
+      city: "Kongsberg",
+      country: "NO",
+      phone: "+47 12345678",
+      email: "admin@proffsy.no",
+      orgNumber: "123456789"
+    },
+  })
+
+  console.log({ companySettings })
+
   // Opprett et test-produkt
   const product = await prisma.product.create({
     data: {
@@ -69,5 +88,5 @@ main()
     process.exit(1)
   })
   .finally(async () => {
-    await prisma.disconnect()
+    await prisma.$disconnect()
   }) 

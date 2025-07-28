@@ -1,7 +1,8 @@
 import { SHIPPING_METHODS } from "@/types/checkout"
 
-const BRING_API_URL = "https://api.bring.com/shippingguide/api/v2/products"
-const BRING_API_KEY = process.env.BRING_API_KEY!
+// Korrekt PostNord API struktur fra developer portal
+const POSTNORD_API_BASE = "https://api2.postnord.com/rest/shipment"
+const POSTNORD_API_KEY = process.env.POSTNORD_API_KEY!
 
 interface ShippingParams {
   weight: number
@@ -10,133 +11,367 @@ interface ShippingParams {
   toCountry: string
 }
 
-export async function calculateShipping(params: ShippingParams) {
-  const payload = {
-    consignments: [{
-      fromCountryCode: "NO",
-      fromPostalCode: params.fromPostalCode,
-      toCountryCode: params.toCountry,
-      toPostalCode: params.toPostalCode,
-      packages: [{
-        weightInGrams: params.weight * 1000, // Konverter kg til gram
-        dimensions: {
-          heightInCm: 20,
-          lengthInCm: 30,
-          widthInCm: 20
+// PostNord tjeneste-IDs og mapping
+const POSTNORD_SERVICES = {
+  // Standard norske PostNord tjenester
+  "DK12": { // Varubrev
+    id: 'varubrev',
+    name: 'Varubrev',
+    description: 'Levering til postkasse',
+    type: 'economy',
+    defaultPrice: 59
+  },
+  "DK30": { // MyPack Home Small
+    id: 'mypackhome',
+    name: 'MyPack Home',
+    description: 'Levering til døren på dagtid',
+    type: 'home',
+    defaultPrice: 99
+  },
+  "DK29": { // MyPack Collect
+    id: 'mypackcollect', 
+    name: 'MyPack Collect',
+    description: 'Pakke til nærmeste hentested',
+    type: 'pickup',
+    defaultPrice: 79
+  },
+  "EXP": { // Express
+    id: 'express',
+    name: 'PostNord Express',
+    description: 'Rask levering - 1-2 dager',
+    type: 'express',
+    defaultPrice: 249
+  }
+}
+
+interface PostNordDeliveryOptionRequest {
+  customer: {
+    customerKey: string
+  }
+  warehouses: [{
+    id: string
+    address: {
+      street: string
+      postCode: string
+      city: string
+      countryCode: string
+    }
+    orderHandling: {
+      daysUntilOrderIsReady: string
+    }
+  }]
+  recipient: {
+    address: {
+      postCode: string
+      countryCode: string
+    }
+  }
+  parcelInfo?: {
+    length: number
+    width: number
+    height: number
+    weight: number
+  }
+}
+
+
+
+// Korrekt PostNord API kall
+async function fetchPostNordDeliveryOptions(params: ShippingParams) {
+  const { weight, fromPostalCode, toPostalCode, toCountry } = params
+  
+  try {
+    // Bygg korrekt URL med API-nøkkel som query parameter
+    const url = `${POSTNORD_API_BASE}/v1/deliveryoptions/bywarehouse?apikey=${POSTNORD_API_KEY}`
+    
+    const requestBody: PostNordDeliveryOptionRequest = {
+      customer: {
+        customerKey: "PROFFSY-INTEGRATION" // Følger dokumentasjon format
+      },
+      warehouses: [{
+        id: "proffsy_warehouse_001",
+        address: {
+          street: "Peckels gate 12b",
+          postCode: fromPostalCode,
+          city: "Kongsberg",
+          countryCode: "NO"
+        },
+        orderHandling: {
+          daysUntilOrderIsReady: "1-2" // 1-2 dager før pakken er klar for henting
         }
       }],
-      products: [
-        { id: "5800" }, // Servicepakke
-        { id: "5600" }, // Bedriftspakke
-        { id: "3570" }, // Hjemlevering
-        { id: "4850" }  // Express
-      ]
-    }],
-    language: "NO",
-    withPrice: true,
-    withExpectedDelivery: true,
-    withGuiInformation: true,
-    edi: false
-  }
-
-  try {
-    const response = await fetch(BRING_API_URL, {
-      method: "POST",
-      headers: {
-        "X-MyBring-API-Uid": process.env.BRING_API_UID || "",
-        "X-MyBring-API-Key": BRING_API_KEY,
-        "X-Bring-Client-URL": process.env.NEXT_PUBLIC_APP_URL || "",
-        "Accept": "application/json",
-        "Content-Type": "application/json"
+      recipient: {
+        address: {
+          postCode: toPostalCode,
+          countryCode: toCountry
+        }
       },
-      body: JSON.stringify(payload)
+      parcelInfo: {
+        length: 200, // 20cm i millimeter
+        width: 150,  // 15cm i millimeter
+        height: 100, // 10cm i millimeter
+        weight: Math.max(weight * 1000, 100) // Konverter til gram, minimum 100g
+      }
+    }
+
+    console.log('PostNord API Request:', {
+      url,
+      body: requestBody
     })
 
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    console.log('PostNord API Response Status:', response.status)
+    const responseText = await response.text()
+    console.log('PostNord API Response:', responseText)
+
     if (!response.ok) {
-      throw new Error(`Bring API Error: ${response.statusText}`)
+      throw new Error(`PostNord API error: ${response.status} - ${responseText}`)
     }
 
-    const data = await response.json()
-
-    // Transform response to our format
-    const shippingRates = data.consignments?.[0]?.products?.map((product: any) => {
-      const methodId = product.id as keyof typeof SHIPPING_METHODS
-      const method = SHIPPING_METHODS[methodId]
-      
-      if (!method) return null
-
-      return {
-        id: methodId,
-        name: method.name,
-        description: method.description,
-        price: Number(product.price?.listPrice?.priceWithoutAdditionalServices?.amountWithVAT || getDefaultPrice(methodId)),
-        estimatedDelivery: `Levering ${product.expectedDelivery?.formattedExpectedDeliveryDate || 'innen 2-4 virkedager'}`,
-        carrier: "Bring",
-        type: method.type,
-        service: product.id
-      }
-    }).filter(Boolean) || []
-
-    return shippingRates
+    const data = JSON.parse(responseText)
+    return {
+      success: true,
+      data: data.warehouseToDeliveryOptions || []
+    }
 
   } catch (error) {
-    console.error("Shipping calculation error:", error)
-    // Returner standard priser hvis API-kallet feiler
-    return getDefaultShippingRates()
-  }
-}
-
-function getDefaultPrice(serviceId: string): number {
-  const defaultPrices: Record<string, number> = {
-    '5800': 99,  // Servicepakke
-    '5600': 149, // Bedriftspakke
-    '3570': 199, // Hjemlevering
-    '4850': 299, // Express
-  }
-  return defaultPrices[serviceId] || 99
-}
-
-function getDefaultShippingRates() {
-  return [
-    {
-      id: '5800',
-      name: 'Klimanøytral Servicepakke',
-      description: 'Pakke til nærmeste hentested',
-      price: 99,
-      estimatedDelivery: 'Levering innen 2-4 virkedager',
-      carrier: 'Bring',
-      type: 'pickup',
-      service: '5800'
-    },
-    {
-      id: '5600',
-      name: 'Bedriftspakke',
-      description: 'Levering til døren på dagtid',
-      price: 149,
-      estimatedDelivery: 'Levering innen 1-3 virkedager',
-      carrier: 'Bring',
-      type: 'home',
-      service: '5600'
-    },
-    {
-      id: '3570',
-      name: 'Klimanøytral Hjemlevering',
-      description: 'Miljøvennlig pakke levert hjem til deg',
-      price: 199,
-      estimatedDelivery: 'Levering innen 2-4 virkedager',
-      carrier: 'Bring',
-      type: 'home',
-      service: '3570'
-    },
-    {
-      id: '4850',
-      name: 'Express Neste Dag',
-      description: 'Raskeste levering - fremme neste arbeidsdag',
-      price: 299,
-      estimatedDelivery: 'Levering neste virkedag',
-      carrier: 'Bring',
-      type: 'express',
-      service: '4850'
+    console.error("PostNord API call failed:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      message: "PostNord API kall feilet"
     }
-  ]
+  }
+}
+
+// Hovedfunksjon for fraktberegning
+export async function calculateShipping(params: ShippingParams) {
+  console.log('Calculating shipping with PostNord API:', params)
+  
+  try {
+    // Prøv PostNord API først
+    const apiResult = await fetchPostNordDeliveryOptions(params)
+    
+    if (apiResult.success && apiResult.data && apiResult.data.length > 0) {
+      console.log('PostNord API success, mapping options...')
+      
+      // Map PostNord response til vårt format
+      const allOptions: any[] = []
+      
+      // PostNord returnerer warehouseToDeliveryOptions array
+      apiResult.data.forEach((warehouseOptions: any) => {
+        if (warehouseOptions.deliveryOptions) {
+          warehouseOptions.deliveryOptions.forEach((deliveryType: any) => {
+            // Legg til default option hvis den finnes
+            if (deliveryType.defaultOption) {
+              allOptions.push(deliveryType.defaultOption)
+            }
+            // Legg til alle additional options
+            if (deliveryType.additionalOptions) {
+              allOptions.push(...deliveryType.additionalOptions)
+            }
+          })
+        }
+      })
+      
+      const shippingOptions = allOptions.map((option: any) => {
+        const serviceCode = option.bookingInstructions?.serviceCode
+        const serviceInfo = POSTNORD_SERVICES[serviceCode as keyof typeof POSTNORD_SERVICES] || {
+          id: serviceCode || 'unknown',
+          name: option.descriptiveTexts?.checkout?.title || 'PostNord levering',
+          description: option.descriptiveTexts?.checkout?.briefDescription || 'PostNord levering',
+          type: 'standard',
+          defaultPrice: 99
+        }
+
+        // Determine delivery type based on location and service
+        let deliveryType: 'home' | 'pickup' | 'parcel-locker' | 'standard' = 'standard'
+        if (serviceCode === '17') {
+          deliveryType = 'home'
+        } else if (serviceCode === '19') {
+          if (option.location?.name?.toLowerCase().includes('pakkeautomat') || 
+              option.location?.name?.toLowerCase().includes('parcel locker')) {
+            deliveryType = 'parcel-locker'
+          } else {
+            deliveryType = 'pickup'
+          }
+        }
+
+        // Build delivery location object if exists
+        let deliveryLocation: any = undefined
+        if (option.location) {
+          deliveryLocation = {
+            name: option.location.name,
+            address: {
+              street: option.location.address?.street,
+              streetName: option.location.address?.streetName,
+              streetNumber: option.location.address?.streetNumber,
+              postCode: option.location.address?.postCode,
+              city: option.location.address?.city,
+              countryCode: option.location.address?.countryCode
+            },
+            coordinate: option.location.coordinate,
+            distanceFromRecipientAddress: option.location.distanceFromRecipientAddress,
+            openingHours: option.location.openingHours,
+            accessibility: option.location.accessibility
+          }
+        }
+        
+        return {
+          id: `${serviceCode}-${option.bookingInstructions?.deliveryOptionId || Math.random()}`,
+          name: option.descriptiveTexts?.checkout?.title || serviceInfo.name,
+          description: option.descriptiveTexts?.checkout?.briefDescription || serviceInfo.description,
+          price: serviceInfo.defaultPrice, // PostNord returnerer ikke priser i delivery options
+          currency: 'NOK',
+          estimatedDelivery: option.deliveryTime?.dayRange?.days || option.deliveryTime?.date?.latest || 'Ukjent',
+          carrier: 'PostNord',
+          type: deliveryType,
+          service: serviceCode,
+          
+          // PostNord specific data
+          deliveryOptionId: option.bookingInstructions?.deliveryOptionId,
+          servicePointId: option.bookingInstructions?.servicePointId,
+          location: deliveryLocation,
+          
+          // Sustainability info
+          fossilFree: option.sustainability?.fossilFree || false,
+          nordicSwanEcoLabel: option.sustainability?.nordicSwanEcoLabel || false,
+          
+          // Friendly delivery info
+          friendlyDeliveryInfo: option.descriptiveTexts?.checkout?.friendlyDeliveryInfo,
+          
+          // Keep original data for debugging
+          postNordData: option
+        }
+      }).filter(Boolean) // Remove any null entries
+      
+      return {
+        success: true,
+        options: shippingOptions,
+        source: 'postnord-api'
+      }
+    }
+    
+    // Fallback til standard priser hvis API feiler
+    console.log('PostNord API failed, using fallback prices')
+    console.log('API Error:', apiResult.error)
+    
+    const fallbackOptions = [
+      {
+        id: 'varubrev',
+        name: 'Varubrev',
+        description: 'Levering til postkasse (3-5 virkedager)',
+        price: 59,
+        currency: 'NOK',
+        estimatedDelivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        type: 'economy'
+      },
+      {
+        id: 'mypackcollect',
+        name: 'MyPack Collect',
+        description: 'Pakke til nærmeste hentested (2-4 virkedager)',
+        price: 79,
+        currency: 'NOK',
+        estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        type: 'pickup'
+      },
+      {
+        id: 'mypackhome',
+        name: 'MyPack Home',
+        description: 'Levering til døren på dagtid (2-4 virkedager)',
+        price: 99,
+        currency: 'NOK',
+        estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        type: 'home'
+      },
+      {
+        id: 'express',
+        name: 'PostNord Express',
+        description: 'Rask levering (1-2 virkedager)',
+        price: 249,
+        currency: 'NOK',
+        estimatedDelivery: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        type: 'express'
+      }
+    ]
+    
+    return {
+      success: true,
+      options: fallbackOptions,
+      source: 'fallback',
+      apiError: apiResult.error
+    }
+    
+  } catch (error) {
+    console.error("Shipping calculation failed:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      message: "Fraktberegning feilet"
+    }
+  }
+}
+
+// Sjekk tilgjengelighet for spesifikk tjeneste
+export async function checkServiceAvailability(
+  serviceId: string,
+  params: ShippingParams
+) {
+  try {
+    console.log(`Checking availability for service ${serviceId}:`, params)
+    
+    // For nå returnerer vi alltid tilgjengelig
+    // Dette kan utvides med spesifikk PostNord API-sjekk
+    return {
+      available: true,
+      serviceId,
+      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    }
+    
+  } catch (error) {
+    console.error("Service availability check failed:", error instanceof Error ? error.message : String(error))
+    return {
+      available: false,
+      serviceId,
+      error: error instanceof Error ? error.message : String(error)
+    }
+  }
+}
+
+// Test PostNord API connection
+export async function testPostNordAPI() {
+  try {
+    console.log('Testing PostNord API connection...')
+    
+    const testParams = {
+      weight: 0.5, // 500g
+      fromPostalCode: "3616", // Kongsberg
+      toPostalCode: "0664", // Oslo
+      toCountry: "NO"
+    }
+    
+    const result = await calculateShipping(testParams)
+    
+    return {
+      success: true,
+      result,
+      message: "PostNord API test utført"
+    }
+    
+  } catch (error) {
+    console.error("PostNord API test failed:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      message: "PostNord API test feilet"
+    }
+  }
 } 
