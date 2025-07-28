@@ -11,29 +11,31 @@ interface PageProps {
 }
 
 async function getProducts(searchParams: PageProps['searchParams']) {
-  const sortParam = String(searchParams.sort || '')
+  // Await searchParams først (Next.js 15+ requirement)
+  const params = await searchParams
+  const sortParam = String(params.sort || '')
 
   const where = {
-    ...(searchParams.search && {
+    ...(params.search && {
       OR: [
-        { name: { contains: String(searchParams.search) } },
-        { description: { contains: String(searchParams.search) } },
+        { name: { contains: String(params.search) } },
+        { description: { contains: String(params.search) } },
       ],
     }),
-    ...(searchParams.category && {
+    ...(params.category && {
       categories: {
         some: {
-          slug: String(searchParams.category)
+          slug: String(params.category)
         }
       }
     }),
-    ...((searchParams.minPrice || searchParams.maxPrice) && {
+    ...((params.minPrice || params.maxPrice) && {
       price: {
-        ...(searchParams.minPrice && { 
-          gte: parseFloat(String(searchParams.minPrice)) 
+        ...(params.minPrice && { 
+          gte: parseFloat(String(params.minPrice)) 
         }),
-        ...(searchParams.maxPrice && { 
-          lte: parseFloat(String(searchParams.maxPrice)) 
+        ...(params.maxPrice && { 
+          lte: parseFloat(String(params.maxPrice)) 
         }),
       }
     })
