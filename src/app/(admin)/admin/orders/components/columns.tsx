@@ -11,12 +11,15 @@ export type Order = {
   id: string
   orderId: string
   status: string
+  shippingStatus: string
   totalAmount: number
   shippingAmount: number
   customerEmail: string
   createdAt: string
   paymentStatus: string
   paymentMethod: string
+  paymentId?: string
+  trackingNumber?: string
 }
 
 const orderStatuses = {
@@ -30,6 +33,17 @@ const paymentStatuses = {
   PENDING: { label: "Venter", color: "bg-yellow-500" },
   PAID: { label: "Betalt", color: "bg-green-500" },
   FAILED: { label: "Feilet", color: "bg-red-500" },
+}
+
+const shippingStatuses = {
+  PENDING: { label: "Venter", color: "bg-gray-500", icon: "⏳" },
+  PROCESSING: { label: "Klar for sending", color: "bg-orange-500", icon: "⚡" },
+  SHIPPED: { label: "Sendt", color: "bg-blue-500", icon: "📦" },
+  IN_TRANSIT: { label: "På vei", color: "bg-blue-600", icon: "🚚" },
+  OUT_FOR_DELIVERY: { label: "Ute på levering", color: "bg-purple-500", icon: "🚛" },
+  DELIVERED: { label: "Levert", color: "bg-green-500", icon: "✅" },
+  FAILED_DELIVERY: { label: "Leveringsfeil", color: "bg-red-500", icon: "❌" },
+  RETURNED: { label: "Returnert", color: "bg-gray-600", icon: "↩️" },
 }
 
 const paymentMethods: Record<string, string> = {
@@ -62,6 +76,37 @@ export const columns: ColumnDef<Order>[] = [
         <Badge className={status.color}>
           {status.label}
         </Badge>
+      )
+    }
+  },
+  {
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Forsendelse
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    accessorKey: "shippingStatus",
+    cell: ({ row }) => {
+      const status = shippingStatuses[row.original.shippingStatus as keyof typeof shippingStatuses] || 
+                    { label: row.original.shippingStatus, color: "bg-gray-500", icon: "❓" }
+      return (
+        <div className="flex items-center gap-2">
+          <Badge className={status.color}>
+            <span className="mr-1">{status.icon}</span>
+            {status.label}
+          </Badge>
+          {row.original.trackingNumber && (
+            <span className="text-xs text-muted-foreground font-mono">
+              {row.original.trackingNumber}
+            </span>
+          )}
+        </div>
       )
     }
   },

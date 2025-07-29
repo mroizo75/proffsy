@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description: "Bla gjennom våre produktkategorier"
 }
 
+// Force dynamic rendering to avoid build-time database calls
+export const dynamic = 'force-dynamic'
+
 export default async function CategoriesPage() {
   const categories = await prisma.category.findMany({
     include: {
@@ -30,18 +33,9 @@ export default async function CategoriesPage() {
             href={`/categories/${category.id}`}
             className="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
             <div className="relative aspect-[2/1] w-full overflow-hidden rounded-t-lg">
-              {category.imageUrl ? (
-                <Image
-                  src={category.imageUrl}
-                  alt={category.name}
-                  fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <span className="text-gray-500 dark:text-gray-400">Ingen bilde</span>
-                </div>
-              )}
+              <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <span className="text-gray-500 dark:text-gray-400">Ingen bilde</span>
+              </div>
             </div>
             
             <div className="p-4">

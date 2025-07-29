@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { sendOrderConfirmation } from "@/lib/email"
 
 const NETS_SECRET_KEY = process.env.NEXI_SECRET_TEST_KEY!
 
@@ -60,20 +61,54 @@ export async function GET(req: Request) {
                          paymentData.payment?.summary?.chargedAmount > 0
 
       if (isCompleted) {
-        // Oppdater ordre status
+        // Oppdater ordre status og sett shipping til PROCESSING (klar for sending)
         await prisma.order.update({
           where: { orderId },
           data: {
             status: "COMPLETED",
             paymentStatus: "PAID",
-            paymentMethod: paymentData.payment?.paymentDetails?.paymentMethod || "UNKNOWN"
+            paymentMethod: paymentData.payment?.paymentDetails?.paymentMethod || "UNKNOWN",
+            shippingStatus: "PROCESSING" // Klar for å bli sendt av admin
           }
         })
 
-        console.log('Order marked as completed:', orderId)
+        console.log('Order marked as completed and ready for shipping:', orderId)
 
-        // Send ordrebekreftelse på e-post (TODO)
-        // await sendOrderConfirmation(orderId)
+        // Send ordrebekreftelse på e-post
+        try {
+          // Hent fullstendig ordre data for email
+          const orderForEmail = await prisma.order.findUnique({
+            where: { orderId },
+            include: {
+              items: true,
+              shippingAddress: true
+            }
+          })
+
+          if (orderForEmail?.shippingAddress) {
+            await sendOrderConfirmation({
+              orderId: orderForEmail.orderId,
+              customerEmail: orderForEmail.customerEmail,
+              totalAmount: Number(orderForEmail.totalAmount),
+              shippingAmount: Number(orderForEmail.shippingAmount),
+              items: orderForEmail.items.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: Number(item.price)
+              })),
+              shippingAddress: {
+                street: orderForEmail.shippingAddress.street,
+                city: orderForEmail.shippingAddress.city,
+                postalCode: orderForEmail.shippingAddress.postalCode,
+                country: orderForEmail.shippingAddress.country
+              }
+            })
+            console.log('Order confirmation email sent for:', orderId)
+          }
+        } catch (emailError) {
+          console.error('Failed to send order confirmation email:', emailError)
+          // Continue execution even if email fails
+        }
       } else {
         console.log('Payment not completed yet:', paymentData.payment?.summary)
       }
