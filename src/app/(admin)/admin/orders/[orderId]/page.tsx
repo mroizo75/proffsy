@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { OrderStatusSelect } from "./components/order-status-select"
 import { PrintShippingLabel } from "./components/print-shipping-label"
+import { ShippingManager } from "./components/shipping-manager"
 import { Separator } from "@/components/ui/separator"
 import { sanitizeOrder } from "@/lib/utils"
 import Link from "next/link"
@@ -32,8 +33,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     notFound()
   }
 
-  // Konverter Decimal verdier til numbers
-  const sanitizedOrder = sanitizeOrder(order)
+  // Konverter Decimal verdier til numbers og legg til paymentStatus
+  const sanitizedOrder = {
+    ...sanitizeOrder(order),
+    paymentStatus: order.paymentId && order.status !== "CANCELLED" ? "PAID" : 
+                  order.status === "CANCELLED" ? "FAILED" : "PENDING"
+  }
 
   return (
     <div className="container py-8">
@@ -97,6 +102,11 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             </div>
           </div>
         </Card>
+      </div>
+
+      {/* Shipping Management Section */}
+      <div className="mt-8">
+        <ShippingManager order={sanitizedOrder} />
       </div>
     </div>
   );
