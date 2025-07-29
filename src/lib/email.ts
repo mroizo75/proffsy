@@ -1,34 +1,27 @@
-import nodemailer from 'nodemailer'
-import { render } from '@react-email/render'
+import { Resend } from 'resend'
 import OrderConfirmationEmail from '@/emails/order-confirmation'
-// import OrderShippedEmail from '@/emails/order-shipped'
-// import OrderDeliveredEmail from '@/emails/order-delivered'
-// import OrderDeliveryFailedEmail from '@/emails/order-delivery-failed'
+import OrderShippedEmail from '@/emails/order-shipped'
+import OrderDeliveredEmail from '@/emails/order-delivered'
+import OrderDeliveryFailedEmail from '@/emails/order-delivery-failed'
 import { ShippingStatus } from '@prisma/client'
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-})
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function sendOrderConfirmation(order: any) {
-  const emailHtml = await render(OrderConfirmationEmail({ order }))
-
-  const mailOptions = {
-    from: process.env.SMTP_FROM,
-    to: order.customerEmail,
-    subject: `Ordrebekreftelse - ${order.orderId}`,
-    html: emailHtml,
-  }
-
   try {
-    await transporter.sendMail(mailOptions)
-    console.log(`Order confirmation email sent to ${order.customerEmail}`)
+    const { data, error } = await resend.emails.send({
+      from: 'PROFFSY <orders@proffsy.no>',
+      to: [order.customerEmail],
+      subject: `Ordrebekreftelse - ${order.orderId}`,
+      react: OrderConfirmationEmail({ order }),
+    })
+
+    if (error) {
+      console.error('Resend API error:', error)
+      throw new Error(`Failed to send email: ${error.message}`)
+    }
+
+    console.log(`Order confirmation email sent to ${order.customerEmail}`, data)
   } catch (error) {
     console.error('Failed to send order confirmation email:', error)
     throw error
@@ -36,22 +29,22 @@ export async function sendOrderConfirmation(order: any) {
 }
 
 export async function sendShippingNotification(order: any, status: ShippingStatus) {
-  let emailHtml = ''
+  let EmailComponent
   let subject = ''
   
   switch (status) {
     case 'SHIPPED':
-      emailHtml = await render(OrderShippedEmail({ order }))
+      EmailComponent = OrderShippedEmail
       subject = `📦 Pakken din er sendt! - ${order.orderId}`
       break
       
     case 'DELIVERED':
-      emailHtml = await render(OrderDeliveredEmail({ order }))
+      EmailComponent = OrderDeliveredEmail
       subject = `🎉 Pakken er ${order.shippingLocation?.name ? 'klar for henting' : 'levert'}! - ${order.orderId}`
       break
       
     case 'FAILED_DELIVERY':
-      emailHtml = await render(OrderDeliveryFailedEmail({ order }))
+      EmailComponent = OrderDeliveryFailedEmail
       subject = `⚠️ Leveringsforsøk mislyktes - ${order.orderId}`
       break
       
@@ -60,16 +53,20 @@ export async function sendShippingNotification(order: any, status: ShippingStatu
       return
   }
 
-  const mailOptions = {
-    from: process.env.SMTP_FROM,
-    to: order.customerEmail,
-    subject,
-    html: emailHtml,
-  }
-
   try {
-    await transporter.sendMail(mailOptions)
-    console.log(`${status} notification email sent to ${order.customerEmail}`)
+    const { data, error } = await resend.emails.send({
+      from: 'PROFFSY <orders@proffsy.no>',
+      to: [order.customerEmail],
+      subject,
+      react: EmailComponent({ order }),
+    })
+
+    if (error) {
+      console.error('Resend API error:', error)
+      throw new Error(`Failed to send email: ${error.message}`)
+    }
+
+    console.log(`${status} notification email sent to ${order.customerEmail}`, data)
   } catch (error) {
     console.error(`Failed to send ${status} notification email:`, error)
     throw error
