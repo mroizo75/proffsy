@@ -5,54 +5,61 @@ import Image from "next/image"
 import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/utils"
-import { useCart } from "@/components/cart/cart-provider"
-import { CartNotification } from "@/components/cart/cart-notification"
-import ReactDOM from "react-dom/client"
+import { useCart } from "@/lib/hooks/use-cart"
+import { toast } from "sonner"
 
 interface ProductCardProps {
   product: {
     id: string
     name: string
     price: number
-    images: { url: string }[]
-    stock: number
+    images?: { url: string }[]
+    stock?: number
   }
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { dispatch } = useCart()
+  const { addItem } = useCart()
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault()
+    e.stopPropagation() // Forhindre navigasjon til produktside
     
-    const cartItem = {
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.images[0]?.url,
-      quantity: 1
+    try {
+      console.log('Adding to cart:', product.name, product.id)
+      console.log('Product data:', product)
+      
+      const cartItem = {
+        id: product.id,
+        name: product.name,
+        price: Number(product.price), // Ensure number type
+        image: product.images?.[0]?.url || "",
+        stock: product.stock || 0
+      }
+      
+      console.log('Cart item:', cartItem)
+      
+      if (!cartItem.id || !cartItem.name || !cartItem.price) {
+        console.error('Invalid cart item data:', cartItem)
+        toast.error('Kunne ikke legge til i handlekurv - ugyldig produktdata')
+        return
+      }
+      
+      addItem(cartItem)
+      console.log('Item added successfully')
+      toast.success(`${product.name} lagt i handlekurv`)
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      toast.error('Feil ved tillegging til handlekurv')
     }
-    
-    dispatch({ type: "ADD_ITEM", payload: cartItem })
-    
-    const root = document.createElement('div')
-    root.id = 'cart-notification'
-    document.body.appendChild(root)
-    
-    const cleanup = () => {
-      document.body.removeChild(root)
-    }
-
-    ReactDOM.createRoot(root).render(
-      <CartNotification product={cartItem} onDismiss={cleanup} />
-    )
   }
 
   return (
     <div className="group bg-card hover:bg-card/80 dark:bg-card/90 dark:hover:bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-200">
       <Link href={`/products/${product.id}`} className="block" >
         <div className="aspect-[4/3] relative overflow-hidden rounded-t-xl bg-muted dark:bg-muted/50">
-          {product.images[0] ? (
+          {product.images?.[0]?.url ? (
             <Image
               src={product.images[0].url}
               alt={product.name}
