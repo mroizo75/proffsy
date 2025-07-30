@@ -61,12 +61,34 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return new NextResponse("Unauthorized", { status: 401 })
+    console.log("PUT tracking session:", session?.user ? { 
+      id: session.user.id, 
+      role: session.user.role,
+      email: session.user.email 
+    } : "No session")
+    
+    if (!session?.user) {
+      console.error("No user session found")
+      return NextResponse.json(
+        { error: "Ikke innlogget" },
+        { status: 401 }
+      )
+    }
+    
+    if (session.user.role !== "ADMIN") {
+      console.error("User is not admin:", session.user.role)
+      return NextResponse.json(
+        { error: "Admin-rettigheter påkrevd" },
+        { status: 401 }
+      )
     }
 
     const { orderId } = await params
     const body = await req.json()
+
+    console.log("PUT tracking request for orderId:", orderId)
+    console.log("Request body:", body)
+    console.log("Valid ShippingStatus values:", Object.values(ShippingStatus))
 
     const {
       status,
@@ -81,9 +103,27 @@ export async function PUT(
     } = body
 
     // Validate required fields
-    if (!status || !Object.values(ShippingStatus).includes(status)) {
+    if (!status) {
+      console.error("Missing status field")
       return NextResponse.json(
-        { error: "Gyldig shipping status er påkrevd" },
+        { 
+          error: "Status er påkrevd",
+          received: body,
+          requiredFields: ["status"],
+          validStatuses: Object.values(ShippingStatus)
+        },
+        { status: 400 }
+      )
+    }
+
+    if (!Object.values(ShippingStatus).includes(status)) {
+      console.error("Invalid status:", status)
+      return NextResponse.json(
+        { 
+          error: "Ugyldig shipping status",
+          received: status,
+          validStatuses: Object.values(ShippingStatus)
+        },
         { status: 400 }
       )
     }
