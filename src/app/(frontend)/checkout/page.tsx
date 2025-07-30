@@ -76,17 +76,23 @@ export default function CheckoutPage() {
       }
       
       const result = await response.json()
+      console.log("Shipping API response:", result)
       
-      if (result.rates?.success && result.rates.options) {
-        setShippingRates(result.rates.options)
-        setShippingSource(result.rates.source)
+      // Shipping API returnerer: { rates: [...], carrier: "PostNord", currency: "NOK", source: "..." }
+      if (result.rates && Array.isArray(result.rates) && result.rates.length > 0) {
+        setShippingRates(result.rates)
+        setShippingSource(result.source)
+        
+        console.log("Fant shipping rates:", result.rates.length)
         
         // Auto-select cheapest home delivery if available
-        const homeDelivery = result.rates.options.find((rate: ShippingRate) => rate.type === 'home')
+        const homeDelivery = result.rates.find((rate: ShippingRate) => rate.type === 'home')
         if (homeDelivery) {
           setSelectedShipping(homeDelivery)
+          console.log("Auto-selected home delivery:", homeDelivery.name)
         }
       } else {
+        console.error("Feil struktur i shipping response:", result)
         throw new Error("Ingen fraktmuligheter funnet")
       }
     } catch (error) {
@@ -113,12 +119,23 @@ export default function CheckoutPage() {
         })
       })
 
-      if (!response.ok) throw new Error("Betalingsfeil")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Betalingsfeil: ${response.status}`)
+      }
       
       const { checkoutUrl } = await response.json()
+      if (!checkoutUrl) {
+        throw new Error("Fikk ikke gyldig checkout URL fra Nets")
+      }
+      
+      console.log("Redirecting to Nets checkout:", checkoutUrl)
       window.location.href = checkoutUrl
     } catch (error) {
       console.error("Payment error:", error)
+      alert(`Feil ved opprettelse av betaling: ${error instanceof Error ? error.message : 'Ukjent feil'}`)
+    } finally {
+      setIsLoading(false)
     }
   }
 
