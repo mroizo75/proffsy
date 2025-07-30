@@ -11,28 +11,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL!.replace(/\/$/, '')
 
 export async function POST(req: Request) {
   try {
-    console.log('💳 Payment API - POST request received')
-    console.log('💳 Environment check:', {
-      hasNetsSecretKey: !!NETS_SECRET_KEY,
-      hasNetsCheckoutKey: !!NETS_CHECKOUT_KEY,
-      hasBaseUrl: !!BASE_URL,
-      baseUrl: BASE_URL
-    })
-    
     // Tillat både innlogget bruker og gjestekjøp
     const session = await getServerSession(authOptions)
-    console.log('💳 Session user:', session?.user?.id || 'guest')
-
     const body = await req.json()
-    console.log('💳 Request body:', {
-      amount: body.amount,
-      shipping: body.shipping,
-      itemsCount: body.items?.length,
-      customerEmail: body.customerInfo?.email
-    })
-    
     const orderNumber = await generateOrderNumber()
-    console.log('💳 Generated order number:', orderNumber)
 
     // Valider påkrevde data
     if (!body.amount || !body.shipping || !body.items || !body.customerInfo) {
@@ -44,8 +26,6 @@ export async function POST(req: Request) {
     }
 
     // Opprett ordre i databasen (med eller uten bruker)
-    console.log('💳 Creating order data...')
-    
     const orderData = {
       orderId: orderNumber,
       userId: session?.user?.id || null, // Eksplisitt null for gjestekjøp
@@ -73,15 +53,6 @@ export async function POST(req: Request) {
       }
     }
 
-    console.log('💳 Order data prepared:', {
-      orderId: orderData.orderId,
-      userId: orderData.userId,
-      customerEmail: orderData.customerEmail,
-      itemsCount: body.items.length
-    })
-
-    console.log('💳 Creating order in database...')
-    
     // Håndter Prisma user relation eksplisitt for gjestekjøp
     const createData = session?.user?.id 
       ? {
@@ -96,25 +67,13 @@ export async function POST(req: Request) {
           userId: null // Eksplisitt null for gjestekjøp
         }
     
-    console.log('💳 Final create data:', {
-      orderId: createData.orderId,
-      userId: createData.userId,
-      hasUserConnect: !!(createData as any).user?.connect
-    })
-    
     const order = await prisma.order.create({
       data: createData
     })
-    console.log('💳 Order created successfully with ID:', order.id)
-
-    console.log('💳 Creating Nets payment for order:', orderNumber)
-    console.log('💳 Payment amount (øre):', Math.round(body.amount * 100))
 
     const termsUrl = `${BASE_URL}/terms`
     const returnUrl = `${BASE_URL}/checkout/complete?order=${orderNumber}`
     const cancelUrl = `${BASE_URL}/checkout/cancel`
-    
-    console.log('💳 Generated URLs:', { termsUrl, returnUrl, cancelUrl })
 
     const netsPayload = {
       checkout: {
@@ -150,11 +109,8 @@ export async function POST(req: Request) {
         ]
       }
     }
-    
-    console.log('💳 Nets payload:', JSON.stringify(netsPayload, null, 2))
 
     // Nets Easy betalingsforespørsel
-    console.log('💳 Making request to Nets API...')
     const response = await fetch("https://test.api.dibspayment.eu/v1/payments", {
       method: "POST",
       headers: {
@@ -164,13 +120,10 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify(netsPayload)
     })
-    
-    console.log('💳 Nets API response status:', response.status)
 
     if (!response.ok) {
       const errorText = await response.text()
       console.error("Nets API Error:", response.status, response.statusText)
-      console.error("Nets error response:", errorText)
       
       try {
         const error = JSON.parse(errorText)
@@ -181,7 +134,6 @@ export async function POST(req: Request) {
     }
 
     const data = await response.json()
-    console.log('Nets payment created successfully:', data.paymentId)
 
     // Oppdater ordre med Nets paymentId
     await prisma.order.update({
@@ -195,10 +147,7 @@ export async function POST(req: Request) {
     })
 
   } catch (error) {
-    console.error("💳 Payment error occurred:")
-    console.error("💳 Error type:", error?.constructor?.name)
-    console.error("💳 Error message:", error instanceof Error ? error.message : String(error))
-    console.error("💳 Error stack:", error instanceof Error ? error.stack : 'No stack trace')
+    console.error("Payment error:", error instanceof Error ? error.message : String(error))
     
     // Gi mer spesifikk feilmelding basert på type feil
     let errorMessage = "Kunne ikke prosessere betaling"
@@ -215,10 +164,7 @@ export async function POST(req: Request) {
     }
     
     return NextResponse.json(
-      { 
-        error: errorMessage,
-        debug: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : String(error) : undefined
-      },
+      { error: errorMessage },
       { status: 500 }
     )
   }

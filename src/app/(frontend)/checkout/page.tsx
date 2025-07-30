@@ -116,13 +116,7 @@ export default function CheckoutPage() {
         amount: subtotal + selectedShipping.price
       }
       
-      console.log('💳 Sending payment data:', {
-        itemsCount: items.length,
-        shipping: selectedShipping,
-        customerEmail: data.email,
-        totalAmount: paymentData.amount,
-        hasAddress: !!data.address
-      })
+
       
       const response = await fetch("/api/payment", {
         method: "POST",
@@ -131,9 +125,7 @@ export default function CheckoutPage() {
       })
 
       if (!response.ok) {
-        console.error('💳 Payment API returned error:', response.status, response.statusText)
         const errorData = await response.json().catch(() => ({}))
-        console.error('💳 Error response data:', errorData)
         throw new Error(errorData.error || `Betalingsfeil: ${response.status}`)
       }
       
@@ -142,7 +134,6 @@ export default function CheckoutPage() {
         throw new Error("Fikk ikke gyldig checkout URL fra Nets")
       }
       
-      console.log("Redirecting to Nets checkout:", checkoutUrl)
       window.location.href = checkoutUrl
     } catch (error) {
       console.error("Payment error:", error)

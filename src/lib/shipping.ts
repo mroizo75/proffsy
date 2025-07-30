@@ -162,11 +162,6 @@ async function fetchPostNordDeliveryOptions(params: ShippingParams) {
       }
     }
 
-    console.log('PostNord API Request:', {
-      url,
-      body: requestBody
-    })
-
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -176,9 +171,7 @@ async function fetchPostNordDeliveryOptions(params: ShippingParams) {
       body: JSON.stringify(requestBody)
     })
 
-    console.log('PostNord API Response Status:', response.status)
     const responseText = await response.text()
-    console.log('PostNord API Response:', responseText)
 
     if (!response.ok) {
       throw new Error(`PostNord API error: ${response.status} - ${responseText}`)
@@ -202,14 +195,14 @@ async function fetchPostNordDeliveryOptions(params: ShippingParams) {
 
 // Hovedfunksjon for fraktberegning
 export async function calculateShipping(params: ShippingParams) {
-  console.log('Calculating shipping with PostNord API:', params)
+
   
   try {
     // Prøv PostNord API først
     const apiResult = await fetchPostNordDeliveryOptions(params)
     
     if (apiResult.success && apiResult.data && apiResult.data.length > 0) {
-      console.log('PostNord API success, mapping options...')
+  
       
       // Map PostNord response til vårt format
       const allOptions: any[] = []
@@ -309,8 +302,7 @@ export async function calculateShipping(params: ShippingParams) {
     }
     
     // Fallback til standard priser hvis API feiler
-    console.log('PostNord API failed, using fallback prices')
-    console.log('API Error:', apiResult.error)
+    // PostNord API failed, using fallback prices
     
     const fallbackOptions = [
       {
@@ -379,7 +371,7 @@ export async function checkServiceAvailability(
   toCountry: string = "NO"
 ) {
   try {
-    console.log(`Checking service availability:`, { fromPostalCode, toPostalCode, toCountry })
+  
     
     // Test med en grunnleggende calculateShipping
     const testResult = await calculateShipping({
@@ -407,7 +399,7 @@ export async function checkServiceAvailability(
 // Test PostNord API connection
 export async function testPostNordAPI() {
   try {
-    console.log('Testing PostNord API connection...')
+  
     
     const testParams = {
       weight: 0.5, // 500g

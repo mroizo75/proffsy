@@ -69,7 +69,6 @@ export const useCart = create<CartStore>()(
         try {
           return localStorage
         } catch (error) {
-          console.warn('localStorage not available, using memory storage')
           // Fallback to memory storage if localStorage fails
           return {
             getItem: () => null,
@@ -87,9 +86,8 @@ export const useCart = create<CartStore>()(
         }
         
         if (state && Array.isArray(state.items)) {
-          console.log('Handlekurv gjenopprettet:', state.items.length, 'produkter')
+          // Cart rehydrated successfully
         } else {
-          console.warn('Ugyldig handlekurvdata, tilbakestiller')
           if (state?.clearCart) {
             state.clearCart()
           }
