@@ -17,25 +17,38 @@ export const useCart = create<CartStore>()(
       items: [],
       
       addItem: (item) => {
+        console.log('🛒 useCart.addItem called with:', item)
+        console.log('🛒 Current items count:', get().items.length)
+        
         set((state) => {
+          console.log('🛒 Inside set function, current state items:', state.items.length)
+          
           const existingItem = state.items.find(
             (i) => i.id === item.id && i.variantId === item.variantId
           )
 
           if (existingItem) {
-            return {
+            console.log('🛒 Found existing item, updating quantity')
+            const newState = {
               items: state.items.map((i) =>
                 i.id === item.id && i.variantId === item.variantId
                   ? { ...i, quantity: i.quantity + 1 }
                   : i
               ),
             }
+            console.log('🛒 New state items count:', newState.items.length)
+            return newState
           }
 
-          return {
+          console.log('🛒 Adding new item to cart')
+          const newState = {
             items: [...state.items, { ...item, quantity: 1 }],
           }
+          console.log('🛒 New state items count:', newState.items.length)
+          return newState
         })
+        
+        console.log('🛒 Final items count:', get().items.length)
       },
 
       removeItem: (id, variantId) => {

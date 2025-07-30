@@ -9,6 +9,8 @@ export function CartButton() {
   const { items } = useCart()
   // Beregn total antall varer (ikke bare antall unike produkter)
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
+  
+  console.log('🛒 CartButton render - items:', items.length, 'itemCount:', itemCount)
 
   return (
     <Button asChild variant="ghost" size="icon" className="relative">
