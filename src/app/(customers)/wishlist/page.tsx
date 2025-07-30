@@ -15,7 +15,8 @@ import {
   Trash2, 
   Eye,
   AlertCircle,
-  Plus
+  Plus,
+  Package
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -29,7 +30,10 @@ interface WishlistItem {
     name: string
     price: number
     stock: number
-    imageUrl?: string
+    images?: Array<{
+      url: string
+      alt?: string
+    }>
     slug: string
   }
   createdAt: string
@@ -107,7 +111,7 @@ export default function WishlistPage() {
         name: item.product.name,
         price: item.product.price,
         quantity: 1,
-        imageUrl: item.product.imageUrl
+        imageUrl: item.product.images?.[0]?.url || null
       })
       
       toast.success(`${item.product.name} lagt til i handlekurv`)
@@ -130,7 +134,7 @@ export default function WishlistPage() {
             name: item.product.name,
             price: item.product.price,
             quantity: 1,
-            imageUrl: item.product.imageUrl
+            imageUrl: item.product.images?.[0]?.url || null
           })
         }
       })
@@ -216,10 +220,10 @@ export default function WishlistPage() {
                 
                 {/* Produktbilde */}
                 <div className="aspect-square relative bg-gray-100">
-                  {item.product.imageUrl ? (
+                  {item.product.images?.[0]?.url ? (
                     <Image
-                      src={item.product.imageUrl}
-                      alt={item.product.name}
+                      src={item.product.images[0].url}
+                      alt={item.product.images[0].alt || item.product.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-200"
                     />

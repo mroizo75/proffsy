@@ -29,7 +29,13 @@ export async function GET(req: Request) {
             product: {
               select: {
                 name: true,
-                imageUrl: true
+                images: {
+                  select: {
+                    url: true,
+                    alt: true
+                  },
+                  take: 1 // Ta bare første bilde
+                }
               }
             }
           }
@@ -63,7 +69,8 @@ export async function GET(req: Request) {
         id: item.id,
         name: item.name,
         quantity: item.quantity,
-        price: Number(item.price) // Convert Decimal to number
+        price: Number(item.price), // Convert Decimal to number
+        imageUrl: item.product?.images?.[0]?.url || null // Første bilde eller null
       })),
       trackingNumber: order.trackingNumber,
       trackingUrl: order.trackingUrl,
