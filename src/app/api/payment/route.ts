@@ -6,7 +6,8 @@ import { generateOrderNumber } from "@/lib/utils"
 
 const NETS_SECRET_KEY = process.env.NEXI_SECRET_TEST_KEY!
 const NETS_CHECKOUT_KEY = process.env.NEXT_PUBLIC_NEXI_CHECKOUT_TEST_KEY!
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL!
+// Fjern trailing slash fra BASE_URL for å unngå doble skråstreker
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL!.replace(/\/$/, '')
 
 export async function POST(req: Request) {
   try {
@@ -82,15 +83,21 @@ export async function POST(req: Request) {
     console.log('💳 Creating Nets payment for order:', orderNumber)
     console.log('💳 Payment amount (øre):', Math.round(body.amount * 100))
 
+    const termsUrl = `${BASE_URL}/terms`
+    const returnUrl = `${BASE_URL}/checkout/complete?order=${orderNumber}`
+    const cancelUrl = `${BASE_URL}/checkout/cancel`
+    
+    console.log('💳 Generated URLs:', { termsUrl, returnUrl, cancelUrl })
+
     const netsPayload = {
       checkout: {
         integrationType: "HostedPaymentPage",
         merchantHandlesConsumerData: true,
-        termsUrl: `${BASE_URL}/terms`,
+        termsUrl,
         charge: true,
         merchantHandlesShippingCost: true,
-        returnUrl: `${BASE_URL}/checkout/complete?order=${orderNumber}`,
-        cancelUrl: `${BASE_URL}/checkout/cancel`
+        returnUrl,
+        cancelUrl
       },
       order: {
         currency: "NOK",

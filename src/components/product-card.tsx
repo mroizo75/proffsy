@@ -20,48 +20,21 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart()
-  
-  console.log('🛒 ProductCard render for product:', {
-    id: product.id,
-    name: product.name,
-    price: product.price
-  })
 
   function handleAddToCart(e: React.MouseEvent) {
-    console.log('🛒 handleAddToCart clicked!')
     e.preventDefault()
     e.stopPropagation() // Forhindre navigasjon til produktside
     
-    try {
-      console.log('🛒 Product data:', {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        images: product.images?.length || 0,
-        stock: product.stock
-      })
-      
-      const cartItem = {
-        id: product.id,
-        name: product.name,
-        price: Number(product.price),
-        image: product.images?.[0]?.url || "",
-        stock: product.stock || 0
-      }
-      
-      console.log('🛒 Cart item to add:', cartItem)
-      console.log('🛒 Calling addItem...')
-      
-      addItem(cartItem)
-      
-      console.log('🛒 addItem called successfully')
-      toast.success(`${product.name} lagt i handlekurv`)
-      console.log('🛒 Toast shown')
-      
-    } catch (error) {
-      console.error('🛒 Error in handleAddToCart:', error)
-      toast.error('Feil ved tillegging til handlekurv')
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: Number(product.price),
+      image: product.images?.[0]?.url || "",
+      stock: product.stock || 0
     }
+    
+    addItem(cartItem)
+    toast.success(`${product.name} lagt i handlekurv`)
   }
 
   return (
@@ -96,12 +69,7 @@ export function ProductCard({ product }: ProductCardProps) {
             variant="ghost"
             size="icon"
             className="text-muted-foreground hover:text-primary dark:hover:text-primary/90 hover:bg-primary/10"
-            onClick={(e) => {
-              console.log('🛒 Button onClick triggered')
-              handleAddToCart(e)
-            }}
-            onMouseDown={() => console.log('🛒 Button mouseDown')}
-            onMouseUp={() => console.log('🛒 Button mouseUp')}
+            onClick={handleAddToCart}
           >
             <ShoppingCart className="h-5 w-5" />
           </Button>

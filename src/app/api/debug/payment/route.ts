@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 
 const NETS_SECRET_KEY = process.env.NEXI_SECRET_TEST_KEY!
 const NETS_CHECKOUT_KEY = process.env.NEXT_PUBLIC_NEXI_CHECKOUT_TEST_KEY!
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL!
+// Fjern trailing slash fra BASE_URL for å unngå doble skråstreker
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL!.replace(/\/$/, '')
 
 export async function GET() {
   try {
