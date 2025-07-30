@@ -10,7 +10,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 export async function sendOrderConfirmation(order: any) {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'PROFFSY <orders@proffsy.no>',
+      from: process.env.RESEND_FROM_EMAIL || 'PROFFSY <onboarding@resend.dev>',
       to: [order.customerEmail],
       subject: `Ordrebekreftelse - ${order.orderId}`,
       react: OrderConfirmationEmail({ order }),
@@ -55,7 +55,7 @@ export async function sendShippingNotification(order: any, status: ShippingStatu
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'PROFFSY <orders@proffsy.no>',
+      from: process.env.RESEND_FROM_EMAIL || 'PROFFSY <onboarding@resend.dev>',
       to: [order.customerEmail],
       subject,
       react: EmailComponent({ order }),
