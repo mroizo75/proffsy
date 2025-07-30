@@ -81,8 +81,29 @@ export async function POST(req: Request) {
     })
 
     console.log('💳 Creating order in database...')
+    
+    // Håndter Prisma user relation eksplisitt for gjestekjøp
+    const createData = session?.user?.id 
+      ? {
+          ...orderData,
+          userId: undefined, // Fjern userId når vi bruker user.connect
+          user: {
+            connect: { id: session.user.id }
+          }
+        }
+      : {
+          ...orderData,
+          userId: null // Eksplisitt null for gjestekjøp
+        }
+    
+    console.log('💳 Final create data:', {
+      orderId: createData.orderId,
+      userId: createData.userId,
+      hasUserConnect: !!(createData as any).user?.connect
+    })
+    
     const order = await prisma.order.create({
-      data: orderData
+      data: createData
     })
     console.log('💳 Order created successfully with ID:', order.id)
 
