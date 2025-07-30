@@ -2,7 +2,12 @@ import { SHIPPING_METHODS } from "@/types/checkout"
 
 // Korrekt PostNord API struktur fra developer portal
 const POSTNORD_API_BASE = "https://api2.postnord.com/rest/shipment"
-const POSTNORD_API_KEY = process.env.POSTNORD_API_KEY!
+const POSTNORD_API_KEY = process.env.POSTNORD_API_KEY
+
+// Validering av API key
+if (!POSTNORD_API_KEY) {
+  console.warn("POSTNORD_API_KEY ikke definert i miljøvariablene")
+}
 
 interface ShippingParams {
   weight: number
@@ -13,34 +18,42 @@ interface ShippingParams {
 
 // PostNord tjeneste-IDs og mapping med norske oversettelser
 const POSTNORD_SERVICES = {
-  // Standard norske PostNord tjenester
-  "DK12": { // Varubrev
-    id: 'varubrev',
-    name: 'Varubrev',
-    description: 'Levering til postkasse',
-    type: 'economy',
-    defaultPrice: 59
-  },
-  "DK30": { // MyPack Home Small
-    id: 'mypackhome',
+  // PostNord servicekoder som returneres fra API
+  "17": { // Home delivery
+    id: 'hjemlevering',
     name: 'Hjemlevering',
     description: 'Levering til døren på dagtid',
     type: 'home',
     defaultPrice: 99
   },
-  "DK29": { // MyPack Collect
-    id: 'mypackcollect', 
+  "19": { // Service point delivery
+    id: 'hentepunkt', 
     name: 'Henting på utleveringssted',
     description: 'Pakke til nærmeste hentested',
     type: 'pickup',
     defaultPrice: 79
   },
-  "EXP": { // Express
+  "26": { // Express home delivery
     id: 'express',
-    name: 'PostNord Express',
-    description: 'Rask levering - 1-2 dager',
+    name: 'Express hjemlevering',
+    description: 'Rask levering til døren - 1-2 dager',
     type: 'express',
-    defaultPrice: 249
+    defaultPrice: 149
+  },
+  "88": { // Business delivery
+    id: 'bedrift',
+    name: 'Bedriftslevering',
+    description: 'Levering til bedriftsadresse',
+    type: 'business',
+    defaultPrice: 189
+  },
+  // Fallback for ukjente servicekoder
+  "DK30": { // MyPack Home Small (fallback)
+    id: 'standard',
+    name: 'Standard levering',
+    description: 'Standard PostNord levering',
+    type: 'standard',
+    defaultPrice: 89
   }
 }
 
@@ -106,6 +119,16 @@ async function fetchPostNordDeliveryOptions(params: ShippingParams) {
   const { weight, fromPostalCode, toPostalCode, toCountry } = params
   
   try {
+    // Valider API-nøkkel
+    if (!POSTNORD_API_KEY) {
+      throw new Error("POSTNORD_API_KEY ikke konfigurert")
+    }
+
+    // Valider parametere
+    if (!fromPostalCode || !toPostalCode) {
+      throw new Error("Postnummer mangler for avsender eller mottaker")
+    }
+
     // Bygg korrekt URL med API-nøkkel som query parameter
     const url = `${POSTNORD_API_BASE}/v1/deliveryoptions/bywarehouse?apikey=${POSTNORD_API_KEY}`
     
@@ -351,25 +374,31 @@ export async function calculateShipping(params: ShippingParams) {
 
 // Sjekk tilgjengelighet for spesifikk tjeneste
 export async function checkServiceAvailability(
-  serviceId: string,
-  params: ShippingParams
+  fromPostalCode: string,
+  toPostalCode: string,
+  toCountry: string = "NO"
 ) {
   try {
-    console.log(`Checking availability for service ${serviceId}:`, params)
+    console.log(`Checking service availability:`, { fromPostalCode, toPostalCode, toCountry })
     
-    // For nå returnerer vi alltid tilgjengelig
-    // Dette kan utvides med spesifikk PostNord API-sjekk
+    // Test med en grunnleggende calculateShipping
+    const testResult = await calculateShipping({
+      weight: 0.5,
+      fromPostalCode,
+      toPostalCode,
+      toCountry
+    })
+    
     return {
-      available: true,
-      serviceId,
-      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      available: testResult.success,
+      services: testResult.options || [],
+      source: testResult.source || 'test'
     }
     
   } catch (error) {
     console.error("Service availability check failed:", error instanceof Error ? error.message : String(error))
     return {
       available: false,
-      serviceId,
       error: error instanceof Error ? error.message : String(error)
     }
   }

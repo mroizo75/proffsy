@@ -43,14 +43,21 @@ export async function POST(req: Request) {
 
     try {
       // Beregn fraktpriser med PostNord
-      const shippingRates = await calculateShipping({
+      const shippingResult = await calculateShipping({
         weight: Math.max(totalWeight, 0.1), // Minimum 100g
         fromPostalCode: companySettings.postalCode,
         toPostalCode: toAddress.postalCode,
         toCountry: toAddress.country || "NO",
       })
 
-      console.log("PostNord shipping rates:", shippingRates)
+      console.log("PostNord shipping result:", shippingResult)
+
+      // Håndter resultat fra calculateShipping
+      if (!shippingResult.success) {
+        throw new Error(shippingResult.message || "Fraktberegning feilet")
+      }
+
+      const shippingRates = shippingResult.options || []
 
       // Lagre adressen hvis bruker er innlogget
       if (session?.user) {
@@ -86,7 +93,8 @@ export async function POST(req: Request) {
       return NextResponse.json({
         rates: shippingRates,
         carrier: "PostNord",
-        currency: "NOK"
+        currency: "NOK",
+        source: shippingResult.source || "postnord-api"
       })
 
     } catch (shippingError) {
@@ -176,7 +184,7 @@ export async function PATCH(req: Request) {
     }
 
     // Test service availability
-    const services = await checkServiceAvailability(
+    const servicesResult = await checkServiceAvailability(
       companySettings.postalCode,
       testPostalCode || "0000",
       "NO"
@@ -184,7 +192,9 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({
       success: true,
-      availableServices: services,
+      available: servicesResult.available,
+      services: servicesResult.services || [],
+      source: servicesResult.source,
       message: "PostNord API tilkobling fungerer"
     })
 
