@@ -44,13 +44,17 @@ export async function POST(req: Request) {
     }
 
     // Opprett ordre i databasen (med eller uten bruker)
-    const orderData: any = {
+    console.log('💳 Creating order data...')
+    
+    const orderData = {
       orderId: orderNumber,
-      status: "PENDING",
+      userId: session?.user?.id || null, // Eksplisitt null for gjestekjøp
+      status: "PENDING" as const,
+      paymentStatus: "PENDING" as const,
       totalAmount: body.amount,
       shippingAmount: body.shipping.price,
       customerEmail: body.customerInfo.email,
-      customerPhone: body.customerInfo.phone,
+      customerPhone: body.customerInfo.phone || "",
       shippingAddress: {
         create: {
           street: body.customerInfo.address.street,
@@ -69,16 +73,18 @@ export async function POST(req: Request) {
       }
     }
 
-    // Legg til userId bare hvis bruker er logget inn
-    if (session?.user?.id) {
-      orderData.userId = session.user.id
-    }
+    console.log('💳 Order data prepared:', {
+      orderId: orderData.orderId,
+      userId: orderData.userId,
+      customerEmail: orderData.customerEmail,
+      itemsCount: body.items.length
+    })
 
     console.log('💳 Creating order in database...')
     const order = await prisma.order.create({
       data: orderData
     })
-    console.log('💳 Order created with ID:', order.id)
+    console.log('💳 Order created successfully with ID:', order.id)
 
     console.log('💳 Creating Nets payment for order:', orderNumber)
     console.log('💳 Payment amount (øre):', Math.round(body.amount * 100))
