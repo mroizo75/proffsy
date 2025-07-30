@@ -17,34 +17,24 @@ export const useCart = create<CartStore>()(
       items: [],
       
       addItem: (item) => {
-        console.log('useCart: addItem called with:', item)
-        
         set((state) => {
-          console.log('useCart: current state:', state.items.length, 'items')
-          
           const existingItem = state.items.find(
             (i) => i.id === item.id && i.variantId === item.variantId
           )
 
           if (existingItem) {
-            console.log('useCart: updating existing item quantity')
-            const newState = {
+            return {
               items: state.items.map((i) =>
                 i.id === item.id && i.variantId === item.variantId
                   ? { ...i, quantity: i.quantity + 1 }
                   : i
               ),
             }
-            console.log('useCart: new state after update:', newState.items.length, 'items')
-            return newState
           }
 
-          console.log('useCart: adding new item to cart')
-          const newState = {
+          return {
             items: [...state.items, { ...item, quantity: 1 }],
           }
-          console.log('useCart: new state after add:', newState.items.length, 'items')
-          return newState
         })
       },
 
@@ -91,7 +81,6 @@ export const useCart = create<CartStore>()(
       partialize: (state) => ({ items: state.items }),
       version: 1,
       onRehydrateStorage: () => (state, error) => {
-        console.log('Cart rehydration started')
         if (error) {
           console.error('Cart rehydration error:', error)
           return

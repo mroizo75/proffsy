@@ -167,8 +167,8 @@ enum Severity {
 model Order {
   id                String          @id @default(cuid())
   orderId           String          @unique
-  userId            String
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String?
+  user              User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   status            OrderStatus     @default(PENDING)
   paymentStatus     PaymentStatus   @default(PENDING)
   paymentMethod     String?

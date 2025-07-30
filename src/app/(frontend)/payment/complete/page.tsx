@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { useCart } from "@/components/cart/cart-provider"
+import { useCart } from "@/lib/hooks/use-cart"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Loader2, CheckCircle, ArrowLeft } from "lucide-react"
@@ -31,7 +31,7 @@ interface OrderDetails {
 function PaymentCompletion() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
-  const { state, dispatch } = useCart()
+  const { clearCart } = useCart()
   const [order, setOrder] = useState<OrderDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -45,7 +45,7 @@ function PaymentCompletion() {
         const data = await response.json()
         
         if (data.status === "success") {
-          dispatch({ type: "CLEAR_CART" })
+          clearCart()
           // Hent ordredetaljer
           const orderResponse = await fetch(`/api/orders/${orderId}`)
           if (!orderResponse.ok) throw new Error("Kunne ikke hente ordredetaljer")
@@ -63,7 +63,7 @@ function PaymentCompletion() {
     if (orderId) {
       verifyPayment()
     }
-  }, [orderId, dispatch])
+  }, [orderId, clearCart])
 
   if (isLoading) {
     return (

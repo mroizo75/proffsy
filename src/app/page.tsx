@@ -8,7 +8,7 @@ import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 
 async function getProducts() {
-  const products = await prisma.product.findMany({
+  return await prisma.product.findMany({
     take: 8,
     include: {
       images: true,
@@ -18,17 +18,6 @@ async function getProducts() {
       createdAt: 'desc'
     }
   })
-  
-  console.log('Homepage: Fetched products:', products.length)
-  console.log('Homepage: First product data:', products[0] ? {
-    id: products[0].id,
-    name: products[0].name,
-    price: products[0].price,
-    images: products[0].images.length,
-    stock: products[0].stock
-  } : 'No products')
-  
-  return products
 }
 
 async function getHero() {

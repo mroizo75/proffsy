@@ -25,34 +25,16 @@ export function ProductCard({ product }: ProductCardProps) {
     e.preventDefault()
     e.stopPropagation() // Forhindre navigasjon til produktside
     
-    try {
-      console.log('Adding to cart:', product.name, product.id)
-      console.log('Product data:', product)
-      
-      const cartItem = {
-        id: product.id,
-        name: product.name,
-        price: Number(product.price), // Ensure number type
-        image: product.images?.[0]?.url || "",
-        stock: product.stock || 0
-      }
-      
-      console.log('Cart item:', cartItem)
-      
-      if (!cartItem.id || !cartItem.name || !cartItem.price) {
-        console.error('Invalid cart item data:', cartItem)
-        toast.error('Kunne ikke legge til i handlekurv - ugyldig produktdata')
-        return
-      }
-      
-      addItem(cartItem)
-      console.log('Item added successfully')
-      toast.success(`${product.name} lagt i handlekurv`)
-      
-    } catch (error) {
-      console.error('Error adding to cart:', error)
-      toast.error('Feil ved tillegging til handlekurv')
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: Number(product.price),
+      image: product.images?.[0]?.url || "",
+      stock: product.stock || 0
     }
+    
+    addItem(cartItem)
+    toast.success(`${product.name} lagt i handlekurv`)
   }
 
   return (

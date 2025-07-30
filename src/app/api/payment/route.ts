@@ -10,41 +10,45 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL!
 
 export async function POST(req: Request) {
   try {
+    // Tillat både innlogget bruker og gjestekjøp
     const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return new NextResponse("Unauthorized", { status: 401 })
-    }
 
     const body = await req.json()
     const orderNumber = await generateOrderNumber()
 
-    // Opprett ordre i databasen
-    const order = await prisma.order.create({
-      data: {
-        orderId: orderNumber,
-        userId: session.user.id,
-        status: "PENDING",
-        totalAmount: body.amount,
-        shippingAmount: body.shipping.price,
-        customerEmail: body.customerInfo.email,
-        customerPhone: body.customerInfo.phone,
-        shippingAddress: {
-          create: {
-            street: body.customerInfo.address.street,
-            city: body.customerInfo.address.city,
-            postalCode: body.customerInfo.address.postalCode,
-            country: body.customerInfo.address.country
-          }
-        },
-        items: {
-          create: body.items.map((item: any) => ({
-            productId: item.id,
-            quantity: item.quantity,
-            price: item.price,
-            name: item.name
-          }))
+    // Opprett ordre i databasen (med eller uten bruker)
+    const orderData: any = {
+      orderId: orderNumber,
+      status: "PENDING",
+      totalAmount: body.amount,
+      shippingAmount: body.shipping.price,
+      customerEmail: body.customerInfo.email,
+      customerPhone: body.customerInfo.phone,
+      shippingAddress: {
+        create: {
+          street: body.customerInfo.address.street,
+          city: body.customerInfo.address.city,
+          postalCode: body.customerInfo.address.postalCode,
+          country: body.customerInfo.address.country
         }
+      },
+      items: {
+        create: body.items.map((item: any) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          name: item.name
+        }))
       }
+    }
+
+    // Legg til userId bare hvis bruker er logget inn
+    if (session?.user?.id) {
+      orderData.userId = session.user.id
+    }
+
+    const order = await prisma.order.create({
+      data: orderData
     })
 
     console.log('Creating Nets payment for order:', orderNumber)
