@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -23,28 +23,92 @@ const companySchema = z.object({
 
 export default function CompanySettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingData, setIsLoadingData] = useState(true)
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     resolver: zodResolver(companySchema)
   })
 
+  // Last inn eksisterende innstillinger når komponenten mounter
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        setIsLoadingData(true)
+        const response = await fetch("/api/admin/settings/company")
+        
+        if (!response.ok) {
+          console.error("Kunne ikke laste innstillinger:", response.status)
+          // Ikke vis error toast - kanskje det ikke finnes innstillinger ennå
+          return
+        }
+
+        const settings = await response.json()
+        console.log("Lastet innstillinger:", settings)
+        
+        if (settings) {
+          // Populer formen med eksisterende data
+          reset({
+            companyName: settings.companyName || "",
+            street: settings.street || "",
+            postalCode: settings.postalCode || "",
+            city: settings.city || "",
+            country: settings.country || "NO",
+            phone: settings.phone || "",
+            email: settings.email || "",
+            orgNumber: settings.orgNumber || ""
+          })
+        }
+      } catch (error) {
+        console.error("Feil ved lasting av innstillinger:", error)
+      } finally {
+        setIsLoadingData(false)
+      }
+    }
+
+    loadSettings()
+  }, [])
+
   const onSubmit = async (data: z.infer<typeof companySchema>) => {
     setIsLoading(true)
     try {
+      console.log("Lagrer innstillinger:", data)
+      
       const response = await fetch("/api/admin/settings/company", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
 
-      if (!response.ok) throw new Error("Kunne ikke lagre innstillinger")
+      if (!response.ok) {
+        const errorData = await response.text()
+        console.error("API feil:", response.status, errorData)
+        throw new Error(`Kunne ikke lagre innstillinger: ${response.status}`)
+      }
 
-      toast.success("Bedriftsinnstillinger oppdatert")
+      const result = await response.json()
+      console.log("Innstillinger lagret:", result)
+      
+      toast.success("Bedriftsinnstillinger lagret successfully!")
     } catch (error) {
-      toast.error("Kunne ikke lagre innstillinger")
-      console.error(error)
+      console.error("Lagringsfeil:", error)
+      toast.error(`Kunne ikke lagre innstillinger: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Vis loading mens data lastes
+  if (isLoadingData) {
+    return (
+      <div className="container py-8">
+        <h1 className="text-3xl font-bold mb-8">Bedriftsinnstillinger</h1>
+        <Card className="max-w-2xl p-6">
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Laster innstillinger...</span>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (
