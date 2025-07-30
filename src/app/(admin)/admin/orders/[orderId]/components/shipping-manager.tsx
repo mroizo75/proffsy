@@ -62,7 +62,7 @@ export function ShippingManager({ order }: { order: any }) {
         body: JSON.stringify({
           trackingNumber: trackingNumber.trim(),
           carrier,
-          shippingStatus,
+          status: shippingStatus, // ✅ Riktig field navn for API
           estimatedDelivery: estimatedDelivery?.toISOString(),
           shippingMethod: order.shippingMethod,
           shippingLocation: order.shippingLocation
@@ -92,7 +92,7 @@ export function ShippingManager({ order }: { order: any }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          notificationType: "SHIPPED"
+          status: shippingStatus // ✅ Send current shipping status for notification
         })
       })
 
