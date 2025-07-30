@@ -108,19 +108,32 @@ export default function CheckoutPage() {
 
     try {
       setIsLoading(true)
+      
+      const paymentData = {
+        items: items,
+        shipping: selectedShipping,
+        customerInfo: data,
+        amount: subtotal + selectedShipping.price
+      }
+      
+      console.log('💳 Sending payment data:', {
+        itemsCount: items.length,
+        shipping: selectedShipping,
+        customerEmail: data.email,
+        totalAmount: paymentData.amount,
+        hasAddress: !!data.address
+      })
+      
       const response = await fetch("/api/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: items,
-          shipping: selectedShipping,
-          customerInfo: data,
-          amount: subtotal + selectedShipping.price
-        })
+        body: JSON.stringify(paymentData)
       })
 
       if (!response.ok) {
+        console.error('💳 Payment API returned error:', response.status, response.statusText)
         const errorData = await response.json().catch(() => ({}))
+        console.error('💳 Error response data:', errorData)
         throw new Error(errorData.error || `Betalingsfeil: ${response.status}`)
       }
       

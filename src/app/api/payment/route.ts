@@ -10,11 +10,37 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL!
 
 export async function POST(req: Request) {
   try {
+    console.log('💳 Payment API - POST request received')
+    console.log('💳 Environment check:', {
+      hasNetsSecretKey: !!NETS_SECRET_KEY,
+      hasNetsCheckoutKey: !!NETS_CHECKOUT_KEY,
+      hasBaseUrl: !!BASE_URL,
+      baseUrl: BASE_URL
+    })
+    
     // Tillat både innlogget bruker og gjestekjøp
     const session = await getServerSession(authOptions)
+    console.log('💳 Session user:', session?.user?.id || 'guest')
 
     const body = await req.json()
+    console.log('💳 Request body:', {
+      amount: body.amount,
+      shipping: body.shipping,
+      itemsCount: body.items?.length,
+      customerEmail: body.customerInfo?.email
+    })
+    
     const orderNumber = await generateOrderNumber()
+    console.log('💳 Generated order number:', orderNumber)
+
+    // Valider påkrevde data
+    if (!body.amount || !body.shipping || !body.items || !body.customerInfo) {
+      throw new Error('Manglende påkrevde data for betaling')
+    }
+
+    if (!body.customerInfo.email || !body.customerInfo.address) {
+      throw new Error('Manglende kunde informasjon')
+    }
 
     // Opprett ordre i databasen (med eller uten bruker)
     const orderData: any = {
@@ -47,14 +73,54 @@ export async function POST(req: Request) {
       orderData.userId = session.user.id
     }
 
+    console.log('💳 Creating order in database...')
     const order = await prisma.order.create({
       data: orderData
     })
+    console.log('💳 Order created with ID:', order.id)
 
-    console.log('Creating Nets payment for order:', orderNumber)
-    console.log('Payment amount (øre):', Math.round(body.amount * 100))
+    console.log('💳 Creating Nets payment for order:', orderNumber)
+    console.log('💳 Payment amount (øre):', Math.round(body.amount * 100))
+
+    const netsPayload = {
+      checkout: {
+        integrationType: "HostedPaymentPage",
+        merchantHandlesConsumerData: true,
+        termsUrl: `${BASE_URL}/terms`,
+        charge: true,
+        merchantHandlesShippingCost: true,
+        returnUrl: `${BASE_URL}/checkout/complete?order=${orderNumber}`,
+        cancelUrl: `${BASE_URL}/checkout/cancel`
+      },
+      order: {
+        currency: "NOK",
+        reference: orderNumber,
+        amount: Math.round(body.amount * 100), // Konverter til øre
+        items: [
+          ...body.items.map((item: any) => ({
+            reference: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            unit: "stk",
+            unitPrice: Math.round(item.price * 100), // Konverter til øre
+            grossTotalAmount: Math.round(item.price * item.quantity * 100)
+          })),
+          {
+            reference: "shipping",
+            name: body.shipping.name,
+            quantity: 1,
+            unit: "stk",
+            unitPrice: Math.round(body.shipping.price * 100),
+            grossTotalAmount: Math.round(body.shipping.price * 100)
+          }
+        ]
+      }
+    }
+    
+    console.log('💳 Nets payload:', JSON.stringify(netsPayload, null, 2))
 
     // Nets Easy betalingsforespørsel
+    console.log('💳 Making request to Nets API...')
     const response = await fetch("https://test.api.dibspayment.eu/v1/payments", {
       method: "POST",
       headers: {
@@ -62,41 +128,10 @@ export async function POST(req: Request) {
         "Authorization": `Bearer ${NETS_SECRET_KEY}`,
         "Accept": "application/json"
       },
-      body: JSON.stringify({
-        checkout: {
-          integrationType: "HostedPaymentPage",
-          merchantHandlesConsumerData: true,
-          termsUrl: `${BASE_URL}/terms`,
-          charge: true,
-          merchantHandlesShippingCost: true,
-          returnUrl: `${BASE_URL}/checkout/complete?order=${orderNumber}`,
-          cancelUrl: `${BASE_URL}/checkout/cancel`
-        },
-        order: {
-          currency: "NOK",
-          reference: orderNumber,
-          amount: Math.round(body.amount * 100), // Konverter til øre
-          items: [
-            ...body.items.map((item: any) => ({
-              reference: item.id,
-              name: item.name,
-              quantity: item.quantity,
-              unit: "stk",
-              unitPrice: Math.round(item.price * 100), // Konverter til øre
-              grossTotalAmount: Math.round(item.price * item.quantity * 100)
-            })),
-            {
-              reference: "shipping",
-              name: body.shipping.name,
-              quantity: 1,
-              unit: "stk",
-              unitPrice: Math.round(body.shipping.price * 100),
-              grossTotalAmount: Math.round(body.shipping.price * 100)
-            }
-          ]
-        }
-      })
+      body: JSON.stringify(netsPayload)
     })
+    
+    console.log('💳 Nets API response status:', response.status)
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -126,9 +161,30 @@ export async function POST(req: Request) {
     })
 
   } catch (error) {
-    console.error("Payment error:", error)
+    console.error("💳 Payment error occurred:")
+    console.error("💳 Error type:", error?.constructor?.name)
+    console.error("💳 Error message:", error instanceof Error ? error.message : String(error))
+    console.error("💳 Error stack:", error instanceof Error ? error.stack : 'No stack trace')
+    
+    // Gi mer spesifikk feilmelding basert på type feil
+    let errorMessage = "Kunne ikke prosessere betaling"
+    if (error instanceof Error) {
+      if (error.message.includes('NETS_SECRET_KEY') || error.message.includes('Environment')) {
+        errorMessage = "Betalingsystemet er ikke konfigurert korrekt"
+      } else if (error.message.includes('Database') || error.message.includes('Prisma')) {
+        errorMessage = "Database feil ved opprettelse av ordre"
+      } else if (error.message.includes('Nets') || error.message.includes('API')) {
+        errorMessage = "Feil i kommunikasjon med betalingsleverandør"
+      } else if (error.message.includes('Manglende')) {
+        errorMessage = error.message
+      }
+    }
+    
     return NextResponse.json(
-      { error: "Kunne ikke prosessere betaling" },
+      { 
+        error: errorMessage,
+        debug: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : String(error) : undefined
+      },
       { status: 500 }
     )
   }
