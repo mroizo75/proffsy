@@ -18,7 +18,8 @@ export async function POST(req: Request) {
     console.log('PostNord shipping request:', {
       items: items.length,
       totalWeight,
-      toAddress
+      toAddress,
+      timestamp: new Date().toISOString()
     })
 
     // Hent bedriftsadresse
@@ -26,9 +27,15 @@ export async function POST(req: Request) {
       where: { id: "default" }
     })
 
+    console.log("CompanySettings fra database:", companySettings)
+
     if (!companySettings) {
+      console.error("FEIL: CompanySettings ikke funnet i databasen!")
       return NextResponse.json(
-        { error: "Bedriftsadresse ikke konfigurert" },
+        { 
+          error: "Bedriftsadresse ikke konfigurert",
+          debug: "CompanySettings med id='default' ikke funnet i databasen. Kjør 'npm run db:seed' for å opprette standard innstillinger."
+        },
         { status: 400 }
       )
     }
@@ -98,7 +105,17 @@ export async function POST(req: Request) {
       })
 
     } catch (shippingError) {
-      console.error("PostNord API Error:", shippingError)
+      console.error("PostNord API Error detaljert:", {
+        error: shippingError,
+        message: shippingError instanceof Error ? shippingError.message : String(shippingError),
+        stack: shippingError instanceof Error ? shippingError.stack : undefined,
+        shippingParams: {
+          weight: Math.max(totalWeight, 0.1),
+          fromPostalCode: companySettings.postalCode,
+          toPostalCode: toAddress.postalCode,
+          toCountry: toAddress.country || "NO"
+        }
+      })
       
       // Returner standard priser hvis PostNord API feiler
       const fallbackRates = [
