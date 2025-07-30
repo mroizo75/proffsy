@@ -56,9 +56,25 @@ export async function GET(req: Request) {
 
       const paymentData = await response.json()
       console.log('Nets payment data:', paymentData)
+      console.log('Payment status:', paymentData.payment?.summary)
+      console.log('Payment state:', paymentData.payment?.state)
 
-      const isCompleted = paymentData.payment?.summary?.reservedAmount > 0 || 
-                         paymentData.payment?.summary?.chargedAmount > 0
+      // Korrekt sjekk: Betaling er bare fullført hvis den er charged ELLER reserved OG confirmed
+      const summary = paymentData.payment?.summary
+      const state = paymentData.payment?.state
+      
+      // En betaling er fullført hvis:
+      // 1. Den er charged (penger er trukket) ELLER
+      // 2. Den er reserved OG state er 'Authorized' (ikke kansellert)
+      const isCompleted = (summary?.chargedAmount > 0) || 
+                         (summary?.reservedAmount > 0 && state === 'Authorized')
+
+      console.log('Payment completion check:', {
+        chargedAmount: summary?.chargedAmount,
+        reservedAmount: summary?.reservedAmount,
+        state: state,
+        isCompleted: isCompleted
+      })
 
       if (isCompleted) {
         // Oppdater ordre status og sett shipping til PROCESSING (klar for sending)
@@ -111,6 +127,18 @@ export async function GET(req: Request) {
         }
       } else {
         console.log('Payment not completed yet:', paymentData.payment?.summary)
+        
+        // Sjekk om betalingen er kansellert eller feilet
+        if (state === 'Cancelled' || state === 'Failed') {
+          console.log('Payment was cancelled or failed:', state)
+          await prisma.order.update({
+            where: { orderId },
+            data: {
+              paymentStatus: "FAILED",
+              status: "CANCELLED"
+            }
+          })
+        }
       }
     }
 
