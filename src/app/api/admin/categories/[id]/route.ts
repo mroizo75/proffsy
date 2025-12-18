@@ -12,9 +12,10 @@ const categorySchema = z.object({
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user || session.user.role !== "ADMIN") {
@@ -39,7 +40,7 @@ export async function PUT(
       where: {
         slug: validatedData.data.slug,
         NOT: {
-          id: params.id
+          id
         }
       }
     })
@@ -60,7 +61,7 @@ export async function PUT(
 
     const category = await prisma.category.update({
       where: {
-        id: params.id
+        id
       },
       data: {
         name: validatedData.data.name,
@@ -80,9 +81,10 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user || session.user.role !== "ADMIN") {
@@ -91,7 +93,7 @@ export async function DELETE(
 
     await prisma.category.delete({
       where: {
-        id: params.id
+        id
       }
     })
 

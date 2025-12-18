@@ -6,9 +6,10 @@ import { sanitizeProduct } from "@/lib/utils"
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
+    const { productId } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== "ADMIN") {
       return new NextResponse("Unauthorized", { status: 401 })
@@ -28,7 +29,7 @@ export async function PATCH(
 
     // Hent eksisterende varianter for å finne hvilke som skal slettes
     const existingProduct = await prisma.product.findUnique({
-      where: { id: params.productId },
+      where: { id: productId },
       include: { variants: true }
     })
 
@@ -43,7 +44,7 @@ export async function PATCH(
 
     // Oppdater produktet og dets varianter
     const updatedProduct = await prisma.product.update({
-      where: { id: params.productId },
+      where: { id: productId },
       data: {
         name,
         description,
@@ -99,10 +100,10 @@ export async function PATCH(
 // Hent enkelt produkt
 export async function GET(
   req: Request,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { productId } = params
+    const { productId } = await params
 
     // Valider produkt-ID
     if (!/^c[a-z0-9]{24}$/.test(productId)) {

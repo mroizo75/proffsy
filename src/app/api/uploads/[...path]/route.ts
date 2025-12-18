@@ -5,10 +5,11 @@ import { NextResponse } from 'next/server'
 
 export async function GET(
   request: Request,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const filePath = join(process.cwd(), 'public', 'uploads', ...params.path)
+    const { path } = await params
+    const filePath = join(process.cwd(), 'public', 'uploads', ...path)
     
     // Sjekk om filen eksisterer
     const stats = await stat(filePath)

@@ -5,9 +5,10 @@ import { authOptions } from "@/lib/auth"
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // Sjekk om brukeren er admin
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== "ADMIN") {
@@ -16,7 +17,7 @@ export async function POST(
 
     // Finn gjeldende hero
     const heroToToggle = await prisma.hero.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!heroToToggle) {
@@ -34,7 +35,7 @@ export async function POST(
 
     // Oppdater status for denne heroen
     const updatedHero = await prisma.hero.update({
-      where: { id: params.id },
+      where: { id },
       data: { 
         active: !heroToToggle.active 
       }

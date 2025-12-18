@@ -5,16 +5,17 @@ import { authOptions } from "@/lib/auth"
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== "ADMIN") {
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
     await prisma.color.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return new NextResponse(null, { status: 204 })

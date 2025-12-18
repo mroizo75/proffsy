@@ -7,9 +7,10 @@ import { join } from "path"
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // Sjekk autentisering
     const session = await getServerSession(authOptions)
     
@@ -19,7 +20,7 @@ export async function PUT(
 
     // Sjekk om hero eksisterer
     const existingHero = await prisma.hero.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!existingHero) {
@@ -105,7 +106,7 @@ export async function PUT(
     console.log('Updating hero with data:', updateData)
 
     const updatedHero = await prisma.hero.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData
     })
 
@@ -120,16 +121,17 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== "ADMIN") {
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
     await prisma.hero.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return new NextResponse(null, { status: 204 })
@@ -140,16 +142,17 @@ export async function DELETE(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== "ADMIN") {
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
     const hero = await prisma.hero.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!hero) {
@@ -157,7 +160,7 @@ export async function PATCH(
     }
 
     await prisma.hero.update({
-      where: { id: params.id },
+      where: { id },
       data: { active: !hero.active }
     })
 
