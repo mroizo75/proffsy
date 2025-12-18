@@ -4,15 +4,15 @@ import { ProductFilters } from "@/components/product-filters"
 import { ProductSearch } from "@/components/product-search"
 import { Suspense } from "react"
 
-interface PageProps {
-  searchParams: {
-    [key: string]: string | string[] | undefined
-  }
+interface SearchParams {
+  [key: string]: string | string[] | undefined
 }
 
-async function getProducts(searchParams: PageProps['searchParams']) {
-  // Await searchParams først (Next.js 15+ requirement)
-  const params = await searchParams
+interface PageProps {
+  searchParams: Promise<SearchParams>
+}
+
+async function getProducts(params: SearchParams) {
   const sortParam = String(params.sort || '')
 
   const where = {
@@ -67,8 +67,9 @@ async function getCategories() {
 export default async function ProductsPage({
   searchParams,
 }: PageProps) {
+  const params = await searchParams
   const [products, categories] = await Promise.all([
-    getProducts(searchParams),
+    getProducts(params),
     getCategories()
   ])
 
