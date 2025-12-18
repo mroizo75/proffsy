@@ -29,8 +29,21 @@ import { Plus, Edit, Eye, CheckCircle, Trash2, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { HeroToggleButton } from "@/components/admin/hero/hero-toggle-button"
 
+interface Hero {
+  id: string
+  title: string
+  description: string | null
+  imageUrl: string | null
+  videoUrl: string | null
+  buttonText: string | null
+  buttonLink: string | null
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 // Fetcher-funksjon for SWR
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = (url: string): Promise<Hero[]> => fetch(url).then((res) => res.json())
 
 export function HeroTable() {
   const { data: heroes, error, isLoading } = useSWR('/api/admin/hero/list', fetcher, {
