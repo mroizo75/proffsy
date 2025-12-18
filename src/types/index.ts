@@ -1,4 +1,4 @@
-import { Color, Variant as PrismaVariant, Prisma } from "@prisma/client"
+import { Color as PrismaColor, Variant as PrismaVariant, Prisma } from "@prisma/client"
 
 export interface ProductVariant {
   id: string

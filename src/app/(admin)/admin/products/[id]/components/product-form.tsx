@@ -85,9 +85,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const toastMessage = initialData ? "Produkt oppdatert." : "Produkt opprettet."
   const action = initialData ? "Lagre endringer" : "Opprett"
 
-  const defaultValues = initialData ? {
-    ...initialData,
+  const defaultValues: ProductFormValues = initialData ? {
+    name: initialData.name,
+    description: initialData.description,
+    price: Number(initialData.price),
+    sku: initialData.sku,
+    stock: initialData.stock,
     categoryIds: initialData.categories.map(c => c.id),
+    images: initialData.images.map(img => ({
+      id: img.id,
+      url: img.url,
+      alt: img.alt ?? undefined
+    })),
+    variants: initialData.variants?.map(v => ({
+      id: v.id,
+      name: v.name,
+      sku: v.sku,
+      price: Number(v.price),
+      stock: v.stock,
+      colorId: v.colorId ?? undefined,
+      images: v.image ? [{ url: v.image }] : undefined
+    })) ?? []
   } : {
     name: "",
     description: "",

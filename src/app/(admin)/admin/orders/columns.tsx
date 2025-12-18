@@ -38,7 +38,7 @@ export const columns: ColumnDef<any>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.getValue("status")
+      const status = row.getValue("status") as string
       return (
         <Badge variant={
           status === "COMPLETED" ? "success" :

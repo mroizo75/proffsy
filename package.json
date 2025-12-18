@@ -76,6 +76,7 @@
     "@types/nodemailer": "^7.0.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-google-recaptcha": "^2.1.9",
     "autoprefixer": "^10.0.1",
     "postcss": "^8",
     "prisma": "^5.10.0",

@@ -34,7 +34,7 @@ export async function logSecurityEvent({
     })
 
     // For kritiske hendelser, lagre i Redis for rask tilgang
-    if (severity === "CRITICAL" || severity === "ALERT") {
+    if (client && (severity === "CRITICAL" || severity === "ALERT")) {
       const key = `security:${ip}:${eventType}`
       await client.setEx(key, 3600, JSON.stringify({ timestamp: Date.now(), ...details }))
     }
@@ -74,7 +74,7 @@ export async function checkSuspiciousActivity(ip: string, email?: string) {
     })
 
     // Sjekk om IP-en er kjent for mistenkelig aktivitet
-    const suspiciousIP = await client.get(`suspicious:ip:${ip}`)
+    const suspiciousIP = client ? await client.get(`suspicious:ip:${ip}`) : null
 
     return {
       isSuspicious: failedLogins > 5 || resetAttempts > 3 || !!suspiciousIP,

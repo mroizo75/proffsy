@@ -110,8 +110,7 @@ export default function WishlistPage() {
         id: item.product.id,
         name: item.product.name,
         price: item.product.price,
-        quantity: 1,
-        imageUrl: item.product.images?.[0]?.url || null
+        image: item.product.images?.[0]?.url || ''
       })
       
       toast.success(`${item.product.name} lagt til i handlekurv`)
@@ -133,8 +132,7 @@ export default function WishlistPage() {
             id: item.product.id,
             name: item.product.name,
             price: item.product.price,
-            quantity: 1,
-            imageUrl: item.product.images?.[0]?.url || null
+            image: item.product.images?.[0]?.url || ''
           })
         }
       })

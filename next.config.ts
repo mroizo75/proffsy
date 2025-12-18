@@ -44,7 +44,7 @@ const nextConfig: NextConfig = {
     PROJECT_ROOT: __dirname
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   webpack(config) {
     config.module.rules.push({

@@ -3,6 +3,10 @@ import { client } from "@/lib/redis"
 
 export async function GET(req: Request) {
   try {
+    if (!client) {
+      return NextResponse.json({ error: "Redis client ikke tilgjengelig" }, { status: 503 })
+    }
+
     const url = new URL(req.url)
     const ip = url.searchParams.get("ip") || "127.0.0.1"
     const email = url.searchParams.get("email")

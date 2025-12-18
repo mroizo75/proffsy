@@ -75,7 +75,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
   
   // Sikre at produkt alltid har et bilde
   if (!product.images || product.images.length === 0) {
-    product.images = [{ url: "/placeholder.jpg", alt: "Ingen bilde tilgjengelig", id: "placeholder" }]
+    product.images = [{ 
+      url: "/placeholder.jpg", 
+      alt: "Ingen bilde tilgjengelig", 
+      id: "placeholder",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      productId: product.id
+    }]
   }
 
   return <ProductClient product={product} />

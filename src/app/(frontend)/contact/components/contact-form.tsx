@@ -135,7 +135,6 @@ export function ContactForm() {
         {/* Honeypot felt - skjult for brukere */}
         <input
           type="text"
-          name="honeypot"
           style={{ display: 'none' }}
           tabIndex={-1}
           autoComplete="off"

@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   try {
     // Sjekk admin tilgang
     const session = await getServerSession(authOptions)
-    if (!session?.user?.role === "ADMIN") {
+    if (!session?.user || session.user.role !== "ADMIN") {
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
