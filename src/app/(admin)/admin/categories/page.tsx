@@ -13,7 +13,6 @@ export default function CategoriesPage() {
   const [selectedCategory, setSelectedCategory] = useState<any>(null)
 
   if (isError) {
-    console.error('Categories error:', isError)
     return <div>Feil ved lasting av kategorier</div>
   }
   

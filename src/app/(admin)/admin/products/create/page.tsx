@@ -80,7 +80,6 @@ export default function CreateProduct() {
       router.push("/admin/products")
       router.refresh()
     } catch (error) {
-      console.error("Feil:", error)
       toast.error(error instanceof Error ? error.message : "Kunne ikke opprette produkt")
     } finally {
       setIsLoading(false)

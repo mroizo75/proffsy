@@ -53,7 +53,6 @@ export async function POST(req: Request) {
       url: `/uploads/${uploadDir}/${filename}` 
     })
   } catch (error) {
-    console.error("Error uploading file:", error)
     return new NextResponse("Error uploading file", { status: 500 })
   }
 } 

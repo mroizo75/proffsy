@@ -6,7 +6,6 @@ const POSTNORD_API_KEY = process.env.POSTNORD_API_KEY
 
 // Validering av API key
 if (!POSTNORD_API_KEY) {
-  console.warn("POSTNORD_API_KEY ikke definert i miljøvariablene")
 }
 
 interface ShippingParams {
@@ -184,7 +183,6 @@ async function fetchPostNordDeliveryOptions(params: ShippingParams) {
     }
 
   } catch (error) {
-    console.error("PostNord API call failed:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -355,7 +353,6 @@ export async function calculateShipping(params: ShippingParams) {
     }
     
   } catch (error) {
-    console.error("Shipping calculation failed:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -388,7 +385,6 @@ export async function checkServiceAvailability(
     }
     
   } catch (error) {
-    console.error("Service availability check failed:", error instanceof Error ? error.message : String(error))
     return {
       available: false,
       error: error instanceof Error ? error.message : String(error)
@@ -417,7 +413,6 @@ export async function testPostNordAPI() {
     }
     
   } catch (error) {
-    console.error("PostNord API test failed:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),

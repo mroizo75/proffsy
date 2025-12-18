@@ -165,7 +165,6 @@ export default function OrdersPage() {
       const data = await response.json()
       setOrders(data)
     } catch (error) {
-      console.error("Feil ved henting av ordrer:", error)
       setError(error instanceof Error ? error.message : "Ukjent feil")
     } finally {
       setIsLoading(false)

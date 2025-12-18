@@ -30,7 +30,6 @@ async function initializeLimiters() {
     })
   } else {
     // Fallback til in-memory rate limiting
-    console.warn('Using in-memory rate limiting (Redis unavailable)')
     
     passwordResetLimiter = new RateLimiterMemory({
       keyPrefix: 'password_reset',

@@ -12,7 +12,6 @@ import type { Product } from "./components/columns"
 export default function AdminProductsPage() {
   const { products, isLoading, isError } = useProducts()
 
-  console.log('ProductsPage rendering')
 
   if (isLoading) {
     return (
@@ -33,7 +32,6 @@ export default function AdminProductsPage() {
         <ProductDialog 
           trigger={
             <Button onClick={() => {
-              console.log('New product button clicked')
             }}>
               <Plus className="w-4 h-4 mr-2" />
               Nytt produkt

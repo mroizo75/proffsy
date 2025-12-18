@@ -21,13 +21,10 @@ export async function sendOrderConfirmation(order: any) {
     })
 
     if (error) {
-      console.error('Resend API error:', error)
       throw new Error(`Failed to send email: ${error.message}`)
     }
 
-    console.log(`Order confirmation email sent to ${order.customerEmail}`, data)
   } catch (error) {
-    console.error('Failed to send order confirmation email:', error)
     throw error
   }
 }
@@ -53,7 +50,6 @@ export async function sendShippingNotification(order: any, status: ShippingStatu
       break
       
     default:
-      console.log(`No email template for shipping status: ${status}`)
       return
   }
 
@@ -67,13 +63,10 @@ export async function sendShippingNotification(order: any, status: ShippingStatu
     })
 
     if (error) {
-      console.error('Resend API error:', error)
       throw new Error(`Failed to send email: ${error.message}`)
     }
 
-    console.log(`${status} notification email sent to ${order.customerEmail}`, data)
   } catch (error) {
-    console.error(`Failed to send ${status} notification email:`, error)
     throw error
   }
 } 

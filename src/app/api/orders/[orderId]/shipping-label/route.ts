@@ -104,7 +104,6 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('Error generating shipping label:', error)
     return new NextResponse("Error generating shipping label", { status: 500 })
   }
 } 

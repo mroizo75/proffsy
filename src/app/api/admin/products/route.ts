@@ -1,9 +1,21 @@
-import { writeFile } from "fs/promises"
-import { join } from "path"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+
+interface ImageInput {
+  url: string
+  alt?: string
+}
+
+interface VariantInput {
+  name: string
+  sku: string
+  price: number
+  stock: number
+  colorId?: string
+  images?: ImageInput[]
+}
 
 export async function GET() {
   try {
@@ -21,8 +33,7 @@ export async function GET() {
     })
 
     return NextResponse.json(products)
-  } catch (error) {
-    console.error("Feil ved henting av produkter:", error)
+  } catch {
     return new NextResponse("Internal Server Error", { status: 500 })
   }
 }
@@ -35,7 +46,6 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    console.log("Mottatt data:", body);
 
     const product = await prisma.product.create({
       data: {
@@ -46,7 +56,7 @@ export async function POST(req: Request) {
         stock: body.stock,
         weight: body.weight || undefined,
         images: {
-          create: body.images.map((image: any) => ({
+          create: body.images.map((image: ImageInput) => ({
             url: image.url,
             alt: image.alt || ""
           }))
@@ -55,7 +65,7 @@ export async function POST(req: Request) {
           connect: body.categoryIds.map((id: string) => ({ id }))
         },
         variants: {
-          create: body.variants?.map((variant: any) => ({
+          create: body.variants?.map((variant: VariantInput) => ({
             name: variant.name,
             sku: variant.sku,
             price: variant.price,
@@ -81,8 +91,7 @@ export async function POST(req: Request) {
     })
 
     return NextResponse.json(product)
-  } catch (error) {
-    console.error('[PRODUCTS_POST]', error)
-    return new NextResponse(`Intern feil: ${error instanceof Error ? error.message : 'Ukjent feil'}`, { status: 500 })
+  } catch {
+    return new NextResponse("Intern feil", { status: 500 })
   }
-} 
+}

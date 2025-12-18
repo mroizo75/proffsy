@@ -43,8 +43,8 @@ export async function logSecurityEvent({
     if (severity === "CRITICAL") {
       await sendSecurityAlert({ eventType, email, ip, details })
     }
-  } catch (error) {
-    console.error("Failed to log security event:", error)
+  } catch {
+    // Security event logging failed silently
   }
 }
 
@@ -82,17 +82,14 @@ export async function checkSuspiciousActivity(ip: string, email?: string) {
       resetAttempts,
       knownSuspicious: !!suspiciousIP,
     }
-  } catch (error) {
-    console.error("Failed to check suspicious activity:", error)
+  } catch {
     return { isSuspicious: false }
   }
 }
 
 // Hjelpefunksjon for å sende varsler
-async function sendSecurityAlert({ eventType, email, ip, details }: Partial<SecurityEvent>) {
-  // Her kan du implementere din egen varslingslogikk (e-post, Slack, etc.)
-  console.log(`SECURITY ALERT: ${eventType} from ${ip}${email ? ` for ${email}` : ''}`)
-  // TODO: Implementer faktisk varsling
+async function sendSecurityAlert(_event: Partial<SecurityEvent>) {
+  // Implementer varsling via e-post, Slack, etc. hvis nødvendig
 }
 
 // Hjelpefunksjon for å hente request info

@@ -336,7 +336,6 @@ export async function sendTrackingNotification(orderId: string, status: Shipping
     // Check if we've already sent this notification
     const emailsSent = order.emailsSent ? JSON.parse(order.emailsSent as string) : {}
     if (emailsSent[status]) {
-      console.log(`${status} notification already sent for order ${orderId}`)
       return
     }
 
@@ -379,7 +378,6 @@ export async function sendTrackingNotification(orderId: string, status: Shipping
         break
         
       default:
-        console.log(`No email template for shipping status: ${status}`)
         return
     }
 
@@ -393,7 +391,6 @@ export async function sendTrackingNotification(orderId: string, status: Shipping
 
     // Send email
     await transporter.sendMail(mailOptions)
-    console.log(`${status} notification email sent to ${order.customerEmail} for order ${orderId}`)
 
     // Update order to track sent emails
     const updatedEmailsSent = { ...emailsSent, [status]: new Date().toISOString() }
@@ -406,7 +403,6 @@ export async function sendTrackingNotification(orderId: string, status: Shipping
     })
 
   } catch (error) {
-    console.error(`Failed to send ${status} notification for order ${orderId}:`, error)
     throw error
   }
 }
@@ -435,14 +431,12 @@ export async function updateOrderShippingStatus(
       }
     })
 
-    console.log(`Order ${orderId} shipping status updated to ${status}`)
 
     // Send notification email
     await sendTrackingNotification(orderId, status, updateData)
 
     return { success: true }
   } catch (error) {
-    console.error(`Failed to update shipping status for order ${orderId}:`, error)
     throw error
   }
 } 

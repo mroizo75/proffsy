@@ -78,7 +78,6 @@ export function CategoryDialog({ open, onClose, category }: CategoryDialogProps)
       await mutateCategories()
       onClose()
     } catch (error) {
-      console.error("Feil:", error)
       toast.error(error instanceof Error ? error.message : "Kunne ikke lagre kategori")
     } finally {
       setIsLoading(false)

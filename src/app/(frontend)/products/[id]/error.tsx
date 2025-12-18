@@ -12,7 +12,6 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error('Product page error:', error)
   }, [error])
 
   return (

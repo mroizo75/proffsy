@@ -92,7 +92,6 @@ export async function PATCH(
 
     return NextResponse.json(updatedProduct)
   } catch (error) {
-    console.error("[PRODUCT_PATCH]", error)
     return new NextResponse("Internal error", { status: 500 })
   }
 }
@@ -129,7 +128,6 @@ export async function GET(
 
     return NextResponse.json(sanitizeProduct(product))
   } catch (error) {
-    console.error('[PRODUCT_GET]', error)
     return new NextResponse("Intern serverfeil", { status: 500 })
   }
 }
@@ -155,7 +153,6 @@ export async function DELETE(
 
     return NextResponse.json(sanitizeProduct(product))
   } catch (error) {
-    console.error('[PRODUCT_DELETE]', error)
     return new NextResponse("Internal error", { status: 500 })
   }
 } 

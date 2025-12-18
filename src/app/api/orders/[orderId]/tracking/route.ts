@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth"
 import { updateOrderShippingStatus } from "@/lib/notifications"
 import { ShippingStatus } from "@prisma/client"
 
-// GET - Få tracking status for en ordre
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ orderId: string }> }
@@ -29,7 +28,6 @@ export async function GET(
       return new NextResponse("Order not found", { status: 404 })
     }
 
-    // Regular users can only view their own orders
     if (session.user.role !== "ADMIN" && order.userId !== session.user.id) {
       return new NextResponse("Forbidden", { status: 403 })
     }
@@ -48,27 +46,19 @@ export async function GET(
       lastNotification: order.lastNotification,
     })
 
-  } catch (error) {
-    console.error("GET tracking error:", error)
+  } catch {
     return new NextResponse("Internal Server Error", { status: 500 })
   }
 }
 
-// PUT - Oppdater tracking status (kun admin)
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
-    console.log("PUT tracking session:", session?.user ? { 
-      id: session.user.id, 
-      role: session.user.role,
-      email: session.user.email 
-    } : "No session")
     
     if (!session?.user) {
-      console.error("No user session found")
       return NextResponse.json(
         { error: "Ikke innlogget" },
         { status: 401 }
@@ -76,7 +66,6 @@ export async function PUT(
     }
     
     if (session.user.role !== "ADMIN") {
-      console.error("User is not admin:", session.user.role)
       return NextResponse.json(
         { error: "Admin-rettigheter påkrevd" },
         { status: 401 }
@@ -85,10 +74,6 @@ export async function PUT(
 
     const { orderId } = await params
     const body = await req.json()
-
-    console.log("PUT tracking request for orderId:", orderId)
-    console.log("Request body:", body)
-    console.log("Valid ShippingStatus values:", Object.values(ShippingStatus))
 
     const {
       status,
@@ -102,14 +87,10 @@ export async function PUT(
       sendNotification = true
     } = body
 
-    // Validate required fields
     if (!status) {
-      console.error("Missing status field")
       return NextResponse.json(
         { 
           error: "Status er påkrevd",
-          received: body,
-          requiredFields: ["status"],
           validStatuses: Object.values(ShippingStatus)
         },
         { status: 400 }
@@ -117,18 +98,15 @@ export async function PUT(
     }
 
     if (!Object.values(ShippingStatus).includes(status)) {
-      console.error("Invalid status:", status)
       return NextResponse.json(
         { 
           error: "Ugyldig shipping status",
-          received: status,
           validStatuses: Object.values(ShippingStatus)
         },
         { status: 400 }
       )
     }
 
-    // Check if order exists
     const existingOrder = await prisma.order.findUnique({
       where: { orderId }
     })
@@ -140,8 +118,7 @@ export async function PUT(
       )
     }
 
-    // Prepare update data
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
     
     if (trackingNumber) updateData.trackingNumber = trackingNumber
     if (trackingUrl) updateData.trackingUrl = trackingUrl
@@ -152,10 +129,8 @@ export async function PUT(
     if (nextAttempt) updateData.nextAttempt = new Date(nextAttempt)
 
     if (sendNotification) {
-      // Use notification service that automatically sends email
       await updateOrderShippingStatus(orderId, status, updateData)
     } else {
-      // Just update database without sending notification
       await prisma.order.update({
         where: { orderId },
         data: {
@@ -171,16 +146,14 @@ export async function PUT(
       message: `Tracking status oppdatert til ${status}${sendNotification ? ' og varsel sendt' : ''}`
     })
 
-  } catch (error) {
-    console.error("PUT tracking error:", error)
+  } catch {
     return NextResponse.json(
-      { error: "Kunne ikke oppdatere tracking status", details: error instanceof Error ? error.message : String(error) },
+      { error: "Kunne ikke oppdatere tracking status" },
       { status: 500 }
     )
   }
 }
 
-// POST - Send tracking notification manuelt (kun admin)
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ orderId: string }> }
@@ -196,7 +169,6 @@ export async function POST(
 
     const { status, force = false } = body
 
-    // Validate status
     if (!status || !Object.values(ShippingStatus).includes(status)) {
       return NextResponse.json(
         { error: "Gyldig shipping status er påkrevd" },
@@ -204,7 +176,6 @@ export async function POST(
       )
     }
 
-    // Check if order exists
     const order = await prisma.order.findUnique({
       where: { orderId }
     })
@@ -216,7 +187,6 @@ export async function POST(
       )
     }
 
-    // Check if notification was already sent
     const emailsSent = order.emailsSent ? JSON.parse(order.emailsSent as string) : {}
     if (emailsSent[status] && !force) {
       return NextResponse.json(
@@ -225,11 +195,9 @@ export async function POST(
       )
     }
 
-    // Send notification with force option
     const { sendTrackingNotification } = await import("@/lib/notifications")
     
     if (force) {
-      // Reset email tracking for this status
       delete emailsSent[status]
       await prisma.order.update({
         where: { orderId },
@@ -246,11 +214,10 @@ export async function POST(
       message: `${status} varsel sendt til kunde`
     })
 
-  } catch (error) {
-    console.error("POST tracking notification error:", error)
+  } catch {
     return NextResponse.json(
-      { error: "Kunne ikke sende varsel", details: error instanceof Error ? error.message : String(error) },
+      { error: "Kunne ikke sende varsel" },
       { status: 500 }
     )
   }
-} 
+}

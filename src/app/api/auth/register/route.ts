@@ -42,7 +42,6 @@ export async function POST(req: Request) {
       { status: 201 }
     )
   } catch (error) {
-    console.error("Registreringsfeil:", error)
     return NextResponse.json(
       { message: "Noe gikk galt under registrering" },
       { status: 500 }

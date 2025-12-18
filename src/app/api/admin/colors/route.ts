@@ -13,7 +13,6 @@ export async function GET() {
     
     return NextResponse.json(colors)
   } catch (error) {
-    console.error("Error fetching colors:", error)
     return new NextResponse("Internal error", { status: 500 })
   }
 }

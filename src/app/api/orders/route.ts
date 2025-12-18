@@ -3,8 +3,7 @@ import { prisma } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
-// GET - Hent alle ordrer for innlogget bruker
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -14,12 +13,9 @@ export async function GET(req: Request) {
       )
     }
 
-    console.log("Fetching orders for user:", session.user.email)
-
-    // Hent ordrer for brukeren (eller alle hvis admin)
     const whereClause = session.user.role === "ADMIN" 
-      ? {} // Admin kan se alle ordrer
-      : { userId: session.user.id } // Vanlige brukere ser bare sine egne
+      ? {}
+      : { userId: session.user.id }
 
     const orders = await prisma.order.findMany({
       where: whereClause,
@@ -34,7 +30,7 @@ export async function GET(req: Request) {
                     url: true,
                     alt: true
                   },
-                  take: 1 // Ta bare første bilde
+                  take: 1
                 }
               }
             }
@@ -53,13 +49,10 @@ export async function GET(req: Request) {
       }
     })
 
-    console.log(`Found ${orders.length} orders for user`)
-
-    // Format ordrer for frontend
     const formattedOrders = orders.map(order => ({
       id: order.id,
       orderId: order.orderId,
-      total: Number(order.totalAmount), // Convert Decimal to number
+      total: Number(order.totalAmount),
       status: order.status,
       paymentStatus: order.paymentStatus,
       shippingStatus: order.shippingStatus,
@@ -69,8 +62,8 @@ export async function GET(req: Request) {
         id: item.id,
         name: item.name,
         quantity: item.quantity,
-        price: Number(item.price), // Convert Decimal to number
-        imageUrl: item.product?.images?.[0]?.url || null // Første bilde eller null
+        price: Number(item.price),
+        imageUrl: item.product?.images?.[0]?.url || null
       })),
       trackingNumber: order.trackingNumber,
       trackingUrl: order.trackingUrl,
@@ -90,13 +83,9 @@ export async function GET(req: Request) {
 
     return NextResponse.json(formattedOrders)
 
-  } catch (error) {
-    console.error("Error fetching orders:", error)
+  } catch {
     return NextResponse.json(
-      { 
-        error: "Kunne ikke hente ordrer",
-        details: error instanceof Error ? error.message : String(error)
-      },
+      { error: "Kunne ikke hente ordrer" },
       { status: 500 }
     )
   }

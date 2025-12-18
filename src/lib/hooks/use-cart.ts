@@ -81,7 +81,6 @@ export const useCart = create<CartStore>()(
       version: 1,
       onRehydrateStorage: () => (state, error) => {
         if (error) {
-          console.error('Cart rehydration error:', error)
           return
         }
         

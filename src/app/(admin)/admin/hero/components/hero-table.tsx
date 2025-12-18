@@ -68,7 +68,6 @@ export function HeroTable() {
       await mutate('/api/admin/hero/list')
       toast.success("Hero-seksjonen ble slettet")
     } catch (error) {
-      console.error(error)
       toast.error("Kunne ikke slette hero-seksjonen")
     } finally {
       setIsDeleting(null)

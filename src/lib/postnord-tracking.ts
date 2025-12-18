@@ -108,7 +108,6 @@ export async function fetchPostNordTrackingInfo(trackingNumber: string): Promise
   try {
     const url = `${POSTNORD_API_BASE}/v5/trackandtrace/findByIdentifierAndLocale.json?apikey=${POSTNORD_API_KEY}&id=${trackingNumber}&locale=no`
     
-    console.log(`Fetching PostNord tracking for: ${trackingNumber}`)
     
     const response = await fetch(url, {
       method: 'GET',
@@ -120,16 +119,13 @@ export async function fetchPostNordTrackingInfo(trackingNumber: string): Promise
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`PostNord tracking API error (${response.status}):`, errorText)
       return null
     }
 
     const data: PostNordTrackingResponse = await response.json()
-    console.log('PostNord tracking response:', JSON.stringify(data, null, 2))
     
     return data
   } catch (error) {
-    console.error('Error fetching PostNord tracking:', error)
     return null
   }
 }
@@ -200,7 +196,6 @@ export async function updateOrderFromPostNordTracking(orderId: string, trackingN
       })
     }
 
-    console.log(`Updating order ${orderId} to status ${shippingStatus}:`, updateData)
 
     // Update order with new tracking information
     await updateOrderShippingStatus(orderId, shippingStatus, updateData)
@@ -212,7 +207,6 @@ export async function updateOrderFromPostNordTracking(orderId: string, trackingN
     }
 
   } catch (error) {
-    console.error(`Error updating order ${orderId} from PostNord tracking:`, error)
     return {
       success: false,
       message: `Feil ved oppdatering av sporingsinformasjon: ${error instanceof Error ? error.message : String(error)}`,
@@ -238,7 +232,6 @@ export async function syncAllOrdersWithPostNord(): Promise<{ updated: number, er
       }
     })
 
-    console.log(`Found ${orders.length} orders to sync with PostNord`)
     
     let updated = 0
     let errors = 0
@@ -249,10 +242,8 @@ export async function syncAllOrdersWithPostNord(): Promise<{ updated: number, er
         
         if (result.success && result.statusChanged) {
           updated++
-          console.log(`✅ Updated order ${order.orderId}: ${result.message}`)
         } else if (!result.success) {
           errors++
-          console.log(`❌ Failed to update order ${order.orderId}: ${result.message}`)
         }
         
         // Add small delay to avoid rate limiting
@@ -260,13 +251,11 @@ export async function syncAllOrdersWithPostNord(): Promise<{ updated: number, er
         
       } catch (error) {
         errors++
-        console.error(`Error syncing order ${order.orderId}:`, error)
       }
     }
 
     return { updated, errors }
   } catch (error) {
-    console.error('Error in syncAllOrdersWithPostNord:', error)
     return { updated: 0, errors: 1 }
   }
 }

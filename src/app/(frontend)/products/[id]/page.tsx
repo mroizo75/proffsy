@@ -31,7 +31,6 @@ async function getProduct(id: string) {
     
     return product
   } catch (error) {
-    console.error("Error fetching product:", error)
     return null
   }
 }

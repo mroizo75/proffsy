@@ -33,7 +33,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ logoUrl })
   } catch (error) {
-    console.error('Error uploading logo:', error)
     return new NextResponse("Error uploading logo", { status: 500 })
   }
 } 

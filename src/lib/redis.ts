@@ -5,7 +5,6 @@ let client: ReturnType<typeof createClient> | null = null
 export async function getRedisClient() {
   // Returner null hvis Redis ikke er konfigurert
   if (!process.env.REDIS_HOST || !process.env.REDIS_PORT) {
-    console.warn('Redis not configured, skipping Redis features')
     return null
   }
 
@@ -20,10 +19,9 @@ export async function getRedisClient() {
         }
       })
 
-      client.on('error', err => console.log('Redis Client Error', err))
+      client.on('error', () => {})
       await client.connect()
     } catch (error) {
-      console.error('Failed to connect to Redis:', error)
       client = null
       return null
     }

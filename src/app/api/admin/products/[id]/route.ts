@@ -2,19 +2,20 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { z } from "zod"
-import { join } from "path"
-import { writeFile } from "fs/promises"
 
-const productSchema = z.object({
-  name: z.string().min(1, "Navn er påkrevd"),
-  description: z.string(),
-  price: z.number().min(0),
-  sku: z.string().min(1, "SKU er påkrevd"),
-  stock: z.number().min(0),
-  categories: z.array(z.string()),
-  existingImages: z.array(z.string()).optional(),
-})
+interface ImageInput {
+  url: string
+  alt?: string
+}
+
+interface VariantInput {
+  name: string
+  sku: string
+  price: number
+  stock: number
+  colorId?: string
+  images?: ImageInput[]
+}
 
 export async function PUT(
   request: Request,
@@ -41,7 +42,6 @@ export async function PUT(
       ? JSON.parse(formData.get("categories") as string) 
       : []
 
-    // Update product with new data
     const product = await prisma.product.update({
       where: {
         id
@@ -53,7 +53,7 @@ export async function PUT(
         sku: formData.get("sku") as string,
         stock: parseInt(formData.get("stock") as string),
         categories: {
-          set: [], // First clear existing categories
+          set: [],
           connect: categoryIds.map((catId: string) => ({ id: catId }))
         }
       },
@@ -64,17 +64,12 @@ export async function PUT(
     })
 
     return NextResponse.json(product)
-  } catch (error) {
+  } catch {
     return new NextResponse(
-      JSON.stringify({ 
-        message: "Kunne ikke oppdatere produkt",
-        error: error instanceof Error ? error.message : "Ukjent feil"
-      }), 
+      JSON.stringify({ message: "Kunne ikke oppdatere produkt" }), 
       { 
         status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       }
     )
   }
@@ -92,7 +87,6 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    // Sjekk om produktet eksisterer
     const existingProduct = await prisma.product.findUnique({
       where: { id }
     })
@@ -104,24 +98,17 @@ export async function DELETE(
       )
     }
 
-    // Slett produktet og alle relaterte data (bilder, kategorikoblinger)
     await prisma.product.delete({
       where: { id }
     })
 
     return new NextResponse(null, { status: 204 })
-  } catch (error) {
-    console.error("Feil ved sletting av produkt:", error)
+  } catch {
     return new NextResponse(
-      JSON.stringify({ 
-        message: "Kunne ikke slette produkt",
-        error: error instanceof Error ? error.message : "Ukjent feil"
-      }), 
+      JSON.stringify({ message: "Kunne ikke slette produkt" }), 
       { 
         status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       }
     )
   }
@@ -140,7 +127,6 @@ export async function PATCH(
 
     const body = await req.json()
 
-    // Oppdater produkt
     const product = await prisma.product.update({
       where: {
         id
@@ -154,18 +140,18 @@ export async function PATCH(
         weight: body.weight || undefined,
         images: {
           deleteMany: {},
-          create: body.images.map((image: any) => ({
+          create: body.images.map((image: ImageInput) => ({
             url: image.url,
             alt: image.alt || ""
           }))
         },
         categories: {
           set: [],
-          connect: body.categoryIds.map((id: string) => ({ id }))
+          connect: body.categoryIds.map((catId: string) => ({ id: catId }))
         },
         variants: {
           deleteMany: {},
-          create: body.variants?.map((variant: any) => ({
+          create: body.variants?.map((variant: VariantInput) => ({
             name: variant.name,
             sku: variant.sku,
             price: variant.price,
@@ -191,8 +177,7 @@ export async function PATCH(
     })
 
     return NextResponse.json(product)
-  } catch (error) {
-    console.error('[PRODUCT_PATCH]', error)
-    return new NextResponse(`Intern feil: ${error instanceof Error ? error.message : 'Ukjent feil'}`, { status: 500 })
+  } catch {
+    return new NextResponse("Intern feil", { status: 500 })
   }
-} 
+}

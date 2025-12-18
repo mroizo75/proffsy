@@ -17,11 +17,10 @@ export async function GET() {
     })
 
     return NextResponse.json(heroes)
-  } catch (error) {
-    console.error("Error fetching heroes:", error)
+  } catch {
     return NextResponse.json(
-      { error: "Kunne ikke hente heroes", details: error instanceof Error ? error.message : String(error) },
+      { error: "Kunne ikke hente heroes" },
       { status: 500 }
     )
   }
-} 
+}

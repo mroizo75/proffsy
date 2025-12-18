@@ -43,7 +43,6 @@ export async function POST(
 
     return NextResponse.json(updatedHero)
   } catch (error) {
-    console.error("[HERO_TOGGLE]", error)
     return new NextResponse("Internal error", { status: 500 })
   }
 } 

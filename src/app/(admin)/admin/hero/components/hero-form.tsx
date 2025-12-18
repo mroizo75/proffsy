@@ -139,7 +139,6 @@ export function HeroForm({ initialData }: HeroFormProps) {
         router.push("/admin/hero")
       }, 300)
     } catch (error) {
-      console.error(error)
       toast.error("Noe gikk galt")
     } finally {
       setIsLoading(false)

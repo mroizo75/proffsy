@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { syncAllOrdersWithPostNord, updateOrderFromPostNordTracking } from "@/lib/postnord-tracking"
 
-// POST - Manuell sync av alle ordrer med PostNord
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -14,10 +13,7 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { orderId, trackingNumber } = body
 
-    // If specific order ID is provided, sync only that order
     if (orderId && trackingNumber) {
-      console.log(`Syncing specific order: ${orderId} with tracking: ${trackingNumber}`)
-      
       const result = await updateOrderFromPostNordTracking(orderId, trackingNumber)
       
       return NextResponse.json({
@@ -28,8 +24,6 @@ export async function POST(req: Request) {
       })
     }
 
-    // Otherwise sync all orders
-    console.log('Starting sync of all orders with PostNord...')
     const result = await syncAllOrdersWithPostNord()
 
     return NextResponse.json({
@@ -40,21 +34,15 @@ export async function POST(req: Request) {
       ordersProcessed: result.updated + result.errors
     })
 
-  } catch (error) {
-    console.error("Tracking sync error:", error)
+  } catch {
     return NextResponse.json(
-      { 
-        success: false, 
-        error: "Kunne ikke synkronisere med PostNord", 
-        details: error instanceof Error ? error.message : String(error) 
-      },
+      { success: false, error: "Kunne ikke synkronisere med PostNord" },
       { status: 500 }
     )
   }
 }
 
-// GET - Få status på tracking sync
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== "ADMIN") {
@@ -63,7 +51,6 @@ export async function GET(req: Request) {
 
     const { prisma } = await import('@/lib/db')
 
-    // Get statistics about orders with tracking
     const stats = await prisma.order.groupBy({
       by: ['shippingStatus'],
       where: {
@@ -119,15 +106,10 @@ export async function GET(req: Request) {
       }
     })
 
-  } catch (error) {
-    console.error("Get tracking sync status error:", error)
+  } catch {
     return NextResponse.json(
-      { 
-        success: false, 
-        error: "Kunne ikke hente sync status", 
-        details: error instanceof Error ? error.message : String(error) 
-      },
+      { success: false, error: "Kunne ikke hente sync status" },
       { status: 500 }
     )
   }
-} 
+}

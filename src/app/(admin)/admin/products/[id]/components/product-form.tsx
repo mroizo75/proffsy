@@ -124,7 +124,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   const onSubmit = async (data: ProductFormValues) => {
     try {
-      console.log("Starter innsending av skjema", data);
       setLoading(true);
       
       const formData = {
@@ -137,51 +136,41 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         }))
       };
       
-      console.log("Behandlet formData:", formData);
 
       if (initialData) {
-        console.log("Oppdaterer eksisterende produkt:", initialData.id);
         const response = await fetch(`/api/admin/products/${initialData.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         });
         
-        console.log("Respons status:", response.status);
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Feil under oppdatering:", errorText);
           throw new Error(errorText || "Kunne ikke oppdatere produkt");
         }
         
-        const result = await response.json();
-        console.log("Oppdatert produkt:", result);
+        await response.json();
       } else {
-        console.log("Oppretter nytt produkt");
         const response = await fetch('/api/admin/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         });
         
-        console.log("Respons status:", response.status);
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Feil under opprettelse:", errorText);
           throw new Error(errorText || "Kunne ikke opprette produkt");
         }
         
-        const result = await response.json();
-        console.log("Opprettet produkt:", result);
+        await response.json();
       }
 
       router.refresh();
       router.push('/admin/products');
       toast.success(toastMessage);
     } catch (error) {
-      console.error("Feil under innsending:", error);
       toast.error(error instanceof Error ? error.message : "Noe gikk galt.");
     } finally {
       setLoading(false);
@@ -624,7 +613,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             disabled={loading} 
             className="ml-auto" 
             type="submit"
-            onClick={() => console.log("Knapp trykket, form state:", form.getValues(), form.formState.errors)}
           >
             {action}
           </Button>

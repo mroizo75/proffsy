@@ -123,7 +123,6 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error("Nets API Error:", response.status, response.statusText)
       
       try {
         const error = JSON.parse(errorText)
@@ -147,7 +146,6 @@ export async function POST(req: Request) {
     })
 
   } catch (error) {
-    console.error("Payment error:", error instanceof Error ? error.message : String(error))
     
     // Gi mer spesifikk feilmelding basert på type feil
     let errorMessage = "Kunne ikke prosessere betaling"

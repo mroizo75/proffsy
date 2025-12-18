@@ -12,7 +12,6 @@ export function ProductGallery({ images }: GalleryProps) {
   const [mainImage, setMainImage] = useState<string>("")
   
   useEffect(() => {
-    console.log("Gallery received images:", images)
     // Sett det første bildet som hovedbilde eller bruk placeholder
     if (images && images.length > 0) {
       setMainImage(images[0].url)

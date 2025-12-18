@@ -4,43 +4,32 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { calculateShipping, checkServiceAvailability } from "@/lib/shipping"
 
+interface ShippingItem {
+  weight?: number
+  quantity: number
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
     const body = await req.json()
     const { items, toAddress } = body
 
-    // Beregn total vekt
-    const totalWeight = items.reduce((sum: number, item: any) => {
-      return sum + (item.weight || 0.5) * item.quantity // Standard 500g hvis ikke spesifisert
+    const totalWeight = items.reduce((sum: number, item: ShippingItem) => {
+      return sum + (item.weight || 0.5) * item.quantity
     }, 0)
 
-    console.log('PostNord shipping request:', {
-      items: items.length,
-      totalWeight,
-      toAddress,
-      timestamp: new Date().toISOString()
-    })
-
-    // Hent bedriftsadresse
     const companySettings = await prisma.companySettings.findFirst({
       where: { id: "default" }
     })
 
-    console.log("CompanySettings fra database:", companySettings)
-
     if (!companySettings) {
-      console.error("FEIL: CompanySettings ikke funnet i databasen!")
       return NextResponse.json(
-        { 
-          error: "Bedriftsadresse ikke konfigurert",
-          debug: "CompanySettings med id='default' ikke funnet i databasen. Kjør 'npm run db:seed' for å opprette standard innstillinger."
-        },
+        { error: "Bedriftsadresse ikke konfigurert" },
         { status: 400 }
       )
     }
 
-    // Valider toAddress
     if (!toAddress?.postalCode) {
       return NextResponse.json(
         { error: "Gyldig postnummer er påkrevd" },
@@ -49,24 +38,19 @@ export async function POST(req: Request) {
     }
 
     try {
-      // Beregn fraktpriser med PostNord
       const shippingResult = await calculateShipping({
-        weight: Math.max(totalWeight, 0.1), // Minimum 100g
+        weight: Math.max(totalWeight, 0.1),
         fromPostalCode: companySettings.postalCode,
         toPostalCode: toAddress.postalCode,
         toCountry: toAddress.country || "NO",
       })
 
-      console.log("PostNord shipping result:", shippingResult)
-
-      // Håndter resultat fra calculateShipping
       if (!shippingResult.success) {
         throw new Error(shippingResult.message || "Fraktberegning feilet")
       }
 
       const shippingRates = shippingResult.options || []
 
-      // Lagre adressen hvis bruker er innlogget
       if (session?.user) {
         try {
           await prisma.userAddress.upsert({
@@ -91,8 +75,7 @@ export async function POST(req: Request) {
               isDefault: false
             }
           })
-        } catch (dbError) {
-          console.log("Could not save address:", dbError)
+        } catch {
           // Ikke stopp prosessen hvis adresse-lagring feiler
         }
       }
@@ -104,20 +87,7 @@ export async function POST(req: Request) {
         source: shippingResult.source || "postnord-api"
       })
 
-    } catch (shippingError) {
-      console.error("PostNord API Error detaljert:", {
-        error: shippingError,
-        message: shippingError instanceof Error ? shippingError.message : String(shippingError),
-        stack: shippingError instanceof Error ? shippingError.stack : undefined,
-        shippingParams: {
-          weight: Math.max(totalWeight, 0.1),
-          fromPostalCode: companySettings.postalCode,
-          toPostalCode: toAddress.postalCode,
-          toCountry: toAddress.country || "NO"
-        }
-      })
-      
-      // Returner standard priser hvis PostNord API feiler
+    } catch {
       const fallbackRates = [
         {
           id: 'mypackcollect',
@@ -149,8 +119,7 @@ export async function POST(req: Request) {
       })
     }
 
-  } catch (error) {
-    console.error('Shipping calculation error:', error)
+  } catch {
     return NextResponse.json(
       { error: "Kunne ikke beregne fraktpriser" },
       { status: 500 }
@@ -158,8 +127,7 @@ export async function POST(req: Request) {
   }
 }
 
-// Hent lagrede adresser for innlogget bruker
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -175,8 +143,7 @@ export async function GET(req: Request) {
     })
 
     return NextResponse.json(addresses)
-  } catch (error) {
-    console.error("Error fetching addresses:", error)
+  } catch {
     return NextResponse.json(
       { error: "Kunne ikke hente adresser" },
       { status: 500 }
@@ -184,7 +151,6 @@ export async function GET(req: Request) {
   }
 }
 
-// Test PostNord API connection
 export async function PATCH(req: Request) {
   try {
     const { testPostalCode } = await req.json()
@@ -200,7 +166,6 @@ export async function PATCH(req: Request) {
       )
     }
 
-    // Test service availability
     const servicesResult = await checkServiceAvailability(
       companySettings.postalCode,
       testPostalCode || "0000",
@@ -215,11 +180,10 @@ export async function PATCH(req: Request) {
       message: "PostNord API tilkobling fungerer"
     })
 
-  } catch (error) {
-    console.error("PostNord API test failed:", error)
+  } catch {
     return NextResponse.json(
-      { error: "PostNord API test feilet", details: error instanceof Error ? error.message : String(error) },
+      { error: "PostNord API test feilet" },
       { status: 500 }
     )
   }
-} 
+}

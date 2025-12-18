@@ -85,7 +85,6 @@ export default function ProfilePage() {
       setEditingProfile(false)
     } catch (error) {
       toast.error("Kunne ikke oppdatere profil")
-      console.error(error)
     } finally {
       setIsLoading(false)
     }
@@ -108,7 +107,6 @@ export default function ProfilePage() {
       // TODO: Refresh addresses list
     } catch (error) {
       toast.error("Kunne ikke lagre adresse")
-      console.error(error)
     } finally {
       setIsLoading(false)
     }

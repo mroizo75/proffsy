@@ -42,7 +42,6 @@ export async function PATCH(
 
     return NextResponse.json(sanitizeOrder(updatedOrder))
   } catch (error) {
-    console.error('Error updating order status:', error)
     return new NextResponse("Error updating order status", { status: 500 })
   }
 } 

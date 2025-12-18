@@ -115,7 +115,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const parsedCart = JSON.parse(savedCart)
         dispatch({ type: "LOAD_CART", payload: parsedCart })
       } catch (error) {
-        console.error("Feil ved lasting av handlekurv:", error)
         localStorage.removeItem(CART_STORAGE_KEY)
       }
     }

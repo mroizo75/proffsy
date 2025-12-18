@@ -76,27 +76,22 @@ export default function CheckoutPage() {
       }
       
       const result = await response.json()
-      console.log("Shipping API response:", result)
       
       // Shipping API returnerer: { rates: [...], carrier: "PostNord", currency: "NOK", source: "..." }
       if (result.rates && Array.isArray(result.rates) && result.rates.length > 0) {
         setShippingRates(result.rates)
         setShippingSource(result.source)
         
-        console.log("Fant shipping rates:", result.rates.length)
         
         // Auto-select cheapest home delivery if available
         const homeDelivery = result.rates.find((rate: ShippingRate) => rate.type === 'home')
         if (homeDelivery) {
           setSelectedShipping(homeDelivery)
-          console.log("Auto-selected home delivery:", homeDelivery.name)
         }
       } else {
-        console.error("Feil struktur i shipping response:", result)
         throw new Error("Ingen fraktmuligheter funnet")
       }
     } catch (error) {
-      console.error("Shipping calculation error:", error)
       setShippingError(error instanceof Error ? error.message : "Feil ved beregning av frakt")
     } finally {
       setIsLoading(false)
@@ -136,7 +131,6 @@ export default function CheckoutPage() {
       
       window.location.href = checkoutUrl
     } catch (error) {
-      console.error("Payment error:", error)
       alert(`Feil ved opprettelse av betaling: ${error instanceof Error ? error.message : 'Ukjent feil'}`)
     } finally {
       setIsLoading(false)

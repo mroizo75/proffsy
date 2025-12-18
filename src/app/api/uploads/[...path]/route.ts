@@ -38,7 +38,6 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error serving image:', error)
     return new NextResponse('Internal error', { status: 500 })
   }
 } 

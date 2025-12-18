@@ -58,7 +58,6 @@ export async function POST(req: Request) {
         { status: 400 }
       )
     }
-    console.error("Feil ved opprettelse av admin:", error)
     return new NextResponse(
       JSON.stringify({ error: "Intern serverfeil" }),
       { status: 500 }

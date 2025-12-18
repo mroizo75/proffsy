@@ -67,7 +67,6 @@ export async function GET() {
       topProducts
     })
   } catch (error) {
-    console.error("Feil ved henting av statistikk:", error)
     return new NextResponse(
       JSON.stringify({ 
         message: "Kunne ikke hente statistikk",

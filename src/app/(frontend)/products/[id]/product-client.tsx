@@ -17,8 +17,6 @@ export function ProductClient({ product }: ProductClientProps) {
 
   // Debug logging
   useEffect(() => {
-    console.log('Product images:', product.images)
-    console.log('Selected variant:', selectedVariant)
   }, [product.images, selectedVariant])
 
   // Oppdater bilder når variant endres
@@ -31,7 +29,6 @@ export function ProductClient({ product }: ProductClientProps) {
         .replace(/^\/uploads\//, '')
         .replace(/^variants\//, '')
       newImages.push({ url: `/uploads/variants/${cleanImagePath}` })
-      console.log('Using variant image:', `/uploads/variants/${cleanImagePath}`)
     } else if (product.images && product.images.length > 0) {
       // For produktbilder
       newImages = product.images.map((img: any) => {

@@ -39,7 +39,6 @@ export function HeroToggleButton({ heroId, isActive, onSuccess }: HeroToggleButt
         onSuccess()
       }
     } catch (error) {
-      console.error(error)
       toast.error('Det oppstod en feil')
     } finally {
       setIsPending(false)

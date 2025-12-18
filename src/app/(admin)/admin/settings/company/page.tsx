@@ -36,13 +36,11 @@ export default function CompanySettingsPage() {
         const response = await fetch("/api/admin/settings/company")
         
         if (!response.ok) {
-          console.error("Kunne ikke laste innstillinger:", response.status)
           // Ikke vis error toast - kanskje det ikke finnes innstillinger ennå
           return
         }
 
         const settings = await response.json()
-        console.log("Lastet innstillinger:", settings)
         
         if (settings) {
           // Populer formen med eksisterende data
@@ -58,7 +56,6 @@ export default function CompanySettingsPage() {
           })
         }
       } catch (error) {
-        console.error("Feil ved lasting av innstillinger:", error)
       } finally {
         setIsLoadingData(false)
       }
@@ -70,7 +67,6 @@ export default function CompanySettingsPage() {
   const onSubmit = async (data: z.infer<typeof companySchema>) => {
     setIsLoading(true)
     try {
-      console.log("Lagrer innstillinger:", data)
       
       const response = await fetch("/api/admin/settings/company", {
         method: "POST",
@@ -80,16 +76,13 @@ export default function CompanySettingsPage() {
 
       if (!response.ok) {
         const errorData = await response.text()
-        console.error("API feil:", response.status, errorData)
         throw new Error(`Kunne ikke lagre innstillinger: ${response.status}`)
       }
 
       const result = await response.json()
-      console.log("Innstillinger lagret:", result)
       
       toast.success("Bedriftsinnstillinger lagret successfully!")
     } catch (error) {
-      console.error("Lagringsfeil:", error)
       toast.error(`Kunne ikke lagre innstillinger: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsLoading(false)

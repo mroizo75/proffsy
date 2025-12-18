@@ -56,13 +56,6 @@ interface ProductDialogProps {
 }
 
 export function ProductDialog({ trigger, product }: ProductDialogProps) {
-  // Debugging på komponent-nivå
-  console.log('ProductDialog render:', {
-    hasProduct: !!product,
-    hasTrigger: !!trigger,
-    productData: product
-  })
-
   const [open, setOpen] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -71,7 +64,6 @@ export function ProductDialog({ trigger, product }: ProductDialogProps) {
   const { mutate } = useProducts()
   const { categories = [], isLoading: categoriesLoading } = useCategories()
 
-  // Debug variants state
   const [variants, setVariants] = useState<Array<{
     id?: string
     name: string
@@ -80,36 +72,13 @@ export function ProductDialog({ trigger, product }: ProductDialogProps) {
     stock: number
     colorId?: string | null
     image?: string
-  }>>(() => {
-    console.log('Initializing variants with:', product?.variants)
-    return product?.variants || []
-  })
+  }>>(() => product?.variants || [])
 
-  // Debug colors loading
   const { colors = [], isLoading: colorsLoading } = useColors({
     revalidateOnFocus: false,
     revalidateIfStale: false,
     enabled: open,
-    onSuccess: (data: any) => {
-      console.log('Colors loaded:', data)
-    },
-    onError: (error: any) => {
-      console.error('Colors loading error:', error)
-    }
   })
-
-  // Debug state changes
-  useEffect(() => {
-    console.log('State update:', {
-      open,
-      isLoading,
-      categoriesLoading,
-      colorsLoading,
-      variantsCount: variants.length,
-      selectedCategoriesCount: selectedCategories.length,
-      imagePreviewsCount: imagePreviews.length
-    })
-  }, [open, isLoading, categoriesLoading, colorsLoading, variants, selectedCategories, imagePreviews])
 
   useEffect(() => {
     if (!open) {
@@ -183,24 +152,15 @@ export function ProductDialog({ trigger, product }: ProductDialogProps) {
   }
 
   const handleOpen = () => {
-    console.log('handleOpen called:', {
-      hasTrigger: !!trigger,
-      hasProduct: !!product
-    })
-    
     if (trigger && !product) {
-      console.log('Opening dialog for new product')
       setOpen(true)
       return
     }
     
     if (product) {
-      console.log('Opening dialog for existing product:', product.id)
       setOpen(true)
       return
     }
-
-    console.error("ProductDialog: Mangler nødvendige props")
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -235,7 +195,6 @@ export function ProductDialog({ trigger, product }: ProductDialogProps) {
       resetForm()
       setOpen(false)
     } catch (error) {
-      console.error("Feil:", error)
       toast.error(error instanceof Error ? error.message : "Kunne ikke lagre produkt")
     } finally {
       setIsLoading(false)
@@ -635,7 +594,6 @@ export function ProductDialog({ trigger, product }: ProductDialogProps) {
       </>
     )
   } catch (error) {
-    console.error('Render error in ProductDialog:', error)
     return <div>Error: Could not render product dialog</div>
   }
 } 

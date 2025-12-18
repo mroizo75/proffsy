@@ -72,7 +72,6 @@ export default function WishlistPage() {
       const data = await response.json()
       setWishlistItems(data)
     } catch (error) {
-      console.error("Feil ved henting av ønskeliste:", error)
       setError(error instanceof Error ? error.message : "Ukjent feil")
     } finally {
       setIsLoading(false)
@@ -95,7 +94,6 @@ export default function WishlistPage() {
       setWishlistItems(prev => prev.filter(item => item.productId !== productId))
       toast.success("Fjernet fra ønskeliste")
     } catch (error) {
-      console.error("Feil ved fjerning fra ønskeliste:", error)
       toast.error("Kunne ikke fjerne fra ønskeliste")
     } finally {
       setIsUpdating(undefined)
@@ -115,7 +113,6 @@ export default function WishlistPage() {
       
       toast.success(`${item.product.name} lagt til i handlekurv`)
     } catch (error) {
-      console.error("Feil ved tillegging til handlekurv:", error)
       toast.error("Kunne ikke legge til i handlekurv")
     } finally {
       setIsUpdating(undefined)
@@ -139,7 +136,6 @@ export default function WishlistPage() {
       
       toast.success("Alle tilgjengelige produkter lagt til i handlekurv")
     } catch (error) {
-      console.error("Feil ved tillegging til handlekurv:", error)
       toast.error("Kunne ikke legge alle produkter til i handlekurv")
     } finally {
       setIsLoading(false)

@@ -33,7 +33,6 @@ export async function POST(req: Request) {
       { status: 200 }
     )
   } catch (error) {
-    console.error("Password reset confirmation error:", error)
     return NextResponse.json(
       { message: "Noe gikk galt. Prøv igjen senere." },
       { status: 500 }
