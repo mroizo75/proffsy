@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
-import { z } from "zod"
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'PROFFSY <ordre@proffsy.no>'
+const CONTACT_EMAIL = process.env.ORDER_FORWARD_EMAIL || 'ordre@amento.no'
 
 // Verifiser reCAPTCHA
 async function verifyRecaptcha(token: string) {
@@ -30,8 +32,8 @@ export async function POST(req: Request) {
 
     // Send e-post via Resend
     await resend.emails.send({
-      from: 'noreply@proffsy.no',
-      to: 'ordre@amento.no',
+      from: FROM_EMAIL,
+      to: CONTACT_EMAIL,
       subject: `Kontaktskjema: ${body.subject}`,
       html: `
         <h2>Ny henvendelse fra kontaktskjema</h2>

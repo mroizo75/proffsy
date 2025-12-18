@@ -12,6 +12,9 @@ const transporter = nodemailer.createTransport({
   },
 })
 
+const FROM_EMAIL = process.env.SMTP_FROM || 'PROFFSY <ordre@proffsy.no>'
+const ORDER_FORWARD_EMAIL = process.env.ORDER_FORWARD_EMAIL || 'ordre@amento.no'
+
 interface NotificationData {
   orderId: string
   customerEmail: string
@@ -381,8 +384,9 @@ export async function sendTrackingNotification(orderId: string, status: Shipping
     }
 
     const mailOptions = {
-      from: process.env.SMTP_FROM,
+      from: FROM_EMAIL,
       to: order.customerEmail,
+      bcc: ORDER_FORWARD_EMAIL,
       subject,
       html: emailHtml,
     }

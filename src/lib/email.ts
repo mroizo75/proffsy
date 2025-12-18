@@ -7,11 +7,15 @@ import { ShippingStatus } from '@prisma/client'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'PROFFSY <ordre@proffsy.no>'
+const ORDER_FORWARD_EMAIL = process.env.ORDER_FORWARD_EMAIL || 'ordre@amento.no'
+
 export async function sendOrderConfirmation(order: any) {
   try {
     const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'PROFFSY <onboarding@resend.dev>',
+      from: FROM_EMAIL,
       to: [order.customerEmail],
+      bcc: [ORDER_FORWARD_EMAIL],
       subject: `Ordrebekreftelse - ${order.orderId}`,
       react: OrderConfirmationEmail({ order }),
     })
@@ -55,8 +59,9 @@ export async function sendShippingNotification(order: any, status: ShippingStatu
 
   try {
     const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'PROFFSY <onboarding@resend.dev>',
+      from: FROM_EMAIL,
       to: [order.customerEmail],
+      bcc: [ORDER_FORWARD_EMAIL],
       subject,
       react: EmailComponent({ order }),
     })
