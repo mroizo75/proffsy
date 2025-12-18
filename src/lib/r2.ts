@@ -1,17 +1,17 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 
-// R2-klient konfigurasjon
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID
+// R2-klient konfigurasjon (samme mønster som andre prosjekter)
+const STORAGE_TYPE = process.env.STORAGE_TYPE
+const R2_ENDPOINT = process.env.R2_ENDPOINT
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || "proffsy"
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL // f.eks. https://cdn.proffsy.no
+const R2_BUCKET = process.env.R2_BUCKET
 
 // Opprett S3-klient for R2
-export const r2Client = R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY
+export const r2Client = STORAGE_TYPE === "r2" && R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY
   ? new S3Client({
       region: "auto",
-      endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      endpoint: R2_ENDPOINT,
       credentials: {
         accessKeyId: R2_ACCESS_KEY_ID,
         secretAccessKey: R2_SECRET_ACCESS_KEY,
@@ -25,7 +25,7 @@ export async function uploadToR2(
   filename: string,
   contentType: string
 ): Promise<string> {
-  if (!r2Client) {
+  if (!r2Client || !R2_BUCKET) {
     throw new Error("R2 er ikke konfigurert. Sjekk miljøvariabler.")
   }
 
@@ -33,41 +33,32 @@ export async function uploadToR2(
 
   await r2Client.send(
     new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
+      Bucket: R2_BUCKET,
       Key: key,
       Body: file,
       ContentType: contentType,
     })
   )
 
-  // Returner offentlig URL
-  if (R2_PUBLIC_URL) {
-    return `${R2_PUBLIC_URL}/${key}`
-  }
-
-  // Fallback til standard R2 URL (krever public bucket)
-  return `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`
+  // Returner offentlig URL basert på endpoint
+  // Fjern protocol og legg til bucket som subdomain
+  const endpointUrl = new URL(R2_ENDPOINT!)
+  return `https://${R2_BUCKET}.${endpointUrl.host}/${key}`
 }
 
 // Slett fil fra R2
 export async function deleteFromR2(url: string): Promise<void> {
-  if (!r2Client) {
+  if (!r2Client || !R2_BUCKET) {
     throw new Error("R2 er ikke konfigurert. Sjekk miljøvariabler.")
   }
 
   // Ekstraher key fra URL
-  let key: string
-  if (R2_PUBLIC_URL && url.startsWith(R2_PUBLIC_URL)) {
-    key = url.replace(`${R2_PUBLIC_URL}/`, "")
-  } else {
-    // Prøv å ekstrahere fra standard URL
-    const urlParts = url.split("/")
-    key = urlParts.slice(3).join("/") // Fjern protocol, domain
-  }
+  const urlParts = url.split("/")
+  const key = urlParts.slice(3).join("/")
 
   await r2Client.send(
     new DeleteObjectCommand({
-      Bucket: R2_BUCKET_NAME,
+      Bucket: R2_BUCKET,
       Key: key,
     })
   )
@@ -75,7 +66,7 @@ export async function deleteFromR2(url: string): Promise<void> {
 
 // Sjekk om R2 er konfigurert
 export function isR2Configured(): boolean {
-  return r2Client !== null
+  return STORAGE_TYPE === "r2" && r2Client !== null
 }
 
 // Generer unik filnavn
@@ -85,4 +76,3 @@ export function generateUniqueFilename(originalFilename: string): string {
   const random = Math.random().toString(36).substring(2, 8)
   return `${timestamp}-${random}${extension}`
 }
-
