@@ -5,15 +5,14 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
 interface PageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }>
 }
 
 export default async function EditProductPage({ params }: PageProps) {
+  const { id } = await params
   // Hent produkt med alle relasjoner
-  const product = params.id === "new" ? null : await prisma.product.findUnique({
-    where: { id: params.id },
+  const product = id === "new" ? null : await prisma.product.findUnique({
+    where: { id },
     include: {
       images: true,
       variants: {

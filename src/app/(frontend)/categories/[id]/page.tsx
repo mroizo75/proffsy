@@ -6,14 +6,13 @@ import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
 
 interface CategoryPageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }>
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { id } = await params
   const category = await prisma.category.findUnique({
-    where: { id: params.id }
+    where: { id }
   })
   
   if (!category) {
@@ -30,8 +29,9 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
+  const { id } = await params
   const category = await prisma.category.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       products: {
         include: {

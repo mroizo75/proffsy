@@ -4,9 +4,7 @@ import { prisma } from "@/lib/db"
 import { Metadata } from "next"
 
 interface ProductPageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }>
 }
 
 // Valider produkt ID
@@ -30,9 +28,6 @@ async function getProduct(id: string) {
         }
       }
     })
-
-    // Debug logging
-    console.log('Raw product data:', JSON.stringify(product, null, 2))
     
     return product
   } catch (error) {
@@ -42,7 +37,8 @@ async function getProduct(id: string) {
 }
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
-  const product = await getProduct(params.id)
+  const { id } = await params
+  const product = await getProduct(id)
   
   if (!product) {
     return {
@@ -58,8 +54,9 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
+  const { id } = await params
   const product = await prisma.product.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       images: true,
       variants: {

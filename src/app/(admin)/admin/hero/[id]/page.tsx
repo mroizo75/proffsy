@@ -7,9 +7,7 @@ import { notFound } from "next/navigation"
 import { Metadata } from "next"
 
 interface HeroEditPageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }>
 }
 
 export const metadata: Metadata = {
@@ -18,6 +16,7 @@ export const metadata: Metadata = {
 }
 
 export default async function HeroEditPage({ params }: HeroEditPageProps) {
+  const { id } = await params
   const session = await getServerSession(authOptions)
   
   if (!session?.user || session.user.role !== "ADMIN") {
@@ -26,7 +25,7 @@ export default async function HeroEditPage({ params }: HeroEditPageProps) {
 
   const hero = await prisma.hero.findUnique({
     where: {
-      id: params.id
+      id
     }
   })
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
@@ -23,8 +23,9 @@ type FormValues = z.infer<typeof schema>
 export default function ResetPasswordPage({
   params,
 }: {
-  params: { token: string }
+  params: Promise<{ token: string }>
 }) {
+  const { token } = use(params)
   const router = useRouter()
   const [error, setError] = useState<string>("")
   const [success, setSuccess] = useState(false)
@@ -43,7 +44,7 @@ export default function ResetPasswordPage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token: params.token,
+          token,
           password: data.password,
         }),
       })
