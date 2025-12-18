@@ -6,9 +6,10 @@ const R2_ENDPOINT = process.env.R2_ENDPOINT
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
 const R2_BUCKET = process.env.R2_BUCKET
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL // Valgfri: custom public URL
 
 // Opprett S3-klient for R2
-export const r2Client = STORAGE_TYPE === "r2" && R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY
+export const r2Client = STORAGE_TYPE === "r2" && R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET
   ? new S3Client({
       region: "auto",
       endpoint: R2_ENDPOINT,
@@ -25,8 +26,8 @@ export async function uploadToR2(
   filename: string,
   contentType: string
 ): Promise<string> {
-  if (!r2Client || !R2_BUCKET) {
-    throw new Error("R2 er ikke konfigurert. Sjekk miljøvariabler.")
+  if (!r2Client || !R2_BUCKET || !R2_ENDPOINT) {
+    throw new Error("R2 er ikke konfigurert. Sjekk miljøvariabler: R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET")
   }
 
   const key = `uploads/${filename}`
@@ -40,10 +41,20 @@ export async function uploadToR2(
     })
   )
 
-  // Returner offentlig URL basert på endpoint
-  // Fjern protocol og legg til bucket som subdomain
-  const endpointUrl = new URL(R2_ENDPOINT!)
-  return `https://${R2_BUCKET}.${endpointUrl.host}/${key}`
+  // Returner offentlig URL
+  if (R2_PUBLIC_URL) {
+    return `${R2_PUBLIC_URL}/${key}`
+  }
+
+  // Bygg URL fra endpoint - håndter ulike formater
+  try {
+    const endpointUrl = new URL(R2_ENDPOINT)
+    // Cloudflare R2 public URL format
+    return `https://pub-${R2_BUCKET}.${endpointUrl.host.replace('.r2.cloudflarestorage.com', '')}.r2.dev/${key}`
+  } catch {
+    // Fallback - bruk endpoint direkte
+    return `${R2_ENDPOINT}/${R2_BUCKET}/${key}`
+  }
 }
 
 // Slett fil fra R2
@@ -66,7 +77,7 @@ export async function deleteFromR2(url: string): Promise<void> {
 
 // Sjekk om R2 er konfigurert
 export function isR2Configured(): boolean {
-  return STORAGE_TYPE === "r2" && r2Client !== null
+  return STORAGE_TYPE === "r2" && r2Client !== null && !!R2_BUCKET && !!R2_ENDPOINT
 }
 
 // Generer unik filnavn
