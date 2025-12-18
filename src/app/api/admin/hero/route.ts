@@ -29,7 +29,11 @@ export async function GET() {
 
     return NextResponse.json(hero)
   } catch (error) {
-    return new NextResponse("Internal Server Error", { status: 500 })
+    console.error("Error fetching hero:", error)
+    return NextResponse.json(
+      { error: "Kunne ikke hente hero", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    )
   }
 }
 

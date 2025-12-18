@@ -18,6 +18,10 @@ export async function GET() {
 
     return NextResponse.json(heroes)
   } catch (error) {
-    return new NextResponse("Internal Server Error", { status: 500 })
+    console.error("Error fetching heroes:", error)
+    return NextResponse.json(
+      { error: "Kunne ikke hente heroes", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    )
   }
 } 
