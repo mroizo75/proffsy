@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { uploadToR2, isR2Configured, generateUniqueFilename } from "@/lib/r2"
 import { writeFile, mkdir, access } from "fs/promises"
 import { join } from "path"
 
@@ -89,22 +90,6 @@ export async function POST(req: Request) {
       return new NextResponse("Missing required fields", { status: 400 })
     }
 
-    // Sjekk/opprett uploads-mappe
-    const uploadDir = join(process.cwd(), "public", "uploads")
-    try {
-      await access(uploadDir)
-    } catch {
-      await mkdir(uploadDir, { recursive: true })
-    }
-
-    // Sikre at vi har skrivetilgang
-    try {
-      await writeFile(join(uploadDir, ".gitkeep"), "")
-    } catch (error) {
-      console.error("Filesystem error:", error)
-      return new NextResponse("Server filesystem error", { status: 500 })
-    }
-
     // Håndter filopplasting
     const bytes = await mediaFile.arrayBuffer()
     const buffer = Buffer.from(bytes)
@@ -113,21 +98,32 @@ export async function POST(req: Request) {
     console.log('File handling:', {
       filename: mediaFile.name,
       size: buffer.length,
-      uploadDir: join(process.cwd(), "public", "uploads")
+      useR2: isR2Configured()
     })
 
-    const extension = mediaFile.name.substring(mediaFile.name.lastIndexOf("."))
-    const filename = `hero-${Date.now()}${extension}` 
-    const filepath = join(process.cwd(), "public", "uploads", filename)
-    
-    // Debug: Fillagring
-    console.log('Saving file:', {
-      filepath,
-      filename
-    })
+    const filename = `hero-${generateUniqueFilename(mediaFile.name)}`
+    let fileUrl: string
 
-    await writeFile(filepath, buffer)
-    const fileUrl = `/uploads/${filename}`
+    // Bruk R2 hvis konfigurert, ellers lokal lagring
+    if (isR2Configured()) {
+      console.log('Uploading to R2:', filename)
+      fileUrl = await uploadToR2(buffer, filename, mediaFile.type)
+      console.log('R2 upload complete:', fileUrl)
+    } else {
+      // Fallback til lokal lagring
+      console.log('R2 not configured, using local storage')
+      const uploadDir = join(process.cwd(), "public", "uploads")
+      try {
+        await access(uploadDir)
+      } catch {
+        await mkdir(uploadDir, { recursive: true })
+      }
+
+      const filepath = join(uploadDir, filename)
+      await writeFile(filepath, buffer)
+      fileUrl = `/uploads/${filename}`
+      console.log('Local file saved:', fileUrl)
+    }
 
     // Debug: Database operasjon
     const heroData = {

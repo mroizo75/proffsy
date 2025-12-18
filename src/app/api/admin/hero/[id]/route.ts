@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { uploadToR2, isR2Configured, generateUniqueFilename } from "@/lib/r2"
 import { writeFile, mkdir, access } from "fs/promises"
 import { join } from "path"
 
@@ -60,36 +61,44 @@ export async function PUT(
     // Hvis ny media er opplastet, prosesser den
     if (image || video) {
       const file = image || video
-      const uploadDir = join(process.cwd(), "public", "uploads")
-      
-      // Sjekk/opprett uploads-mappe
-      try {
-        await access(uploadDir)
-      } catch {
-        await mkdir(uploadDir, { recursive: true })
-      }
-
       const bytes = await file.arrayBuffer()
       const buffer = Buffer.from(bytes)
       
       console.log('File handling for update:', {
         filename: file.name,
         size: buffer.length,
-        uploadDir
+        useR2: isR2Configured()
       })
 
-      const extension = file.name.substring(file.name.lastIndexOf("."))
-      const filename = `hero-${Date.now()}${extension}`
-      const filepath = join(uploadDir, filename)
-      
-      await writeFile(filepath, buffer)
+      const filename = `hero-${generateUniqueFilename(file.name)}`
+      let fileUrl: string
+
+      // Bruk R2 hvis konfigurert, ellers lokal lagring
+      if (isR2Configured()) {
+        console.log('Uploading to R2:', filename)
+        fileUrl = await uploadToR2(buffer, filename, file.type)
+        console.log('R2 upload complete:', fileUrl)
+      } else {
+        // Fallback til lokal lagring
+        const uploadDir = join(process.cwd(), "public", "uploads")
+        try {
+          await access(uploadDir)
+        } catch {
+          await mkdir(uploadDir, { recursive: true })
+        }
+
+        const filepath = join(uploadDir, filename)
+        await writeFile(filepath, buffer)
+        fileUrl = `/uploads/${filename}`
+        console.log('Local file saved:', fileUrl)
+      }
       
       // Oppdater URL basert på mediatype
       if (image) {
-        updateData.imageUrl = `/uploads/${filename}`
+        updateData.imageUrl = fileUrl
         if (isVideo) updateData.videoUrl = null
       } else {
-        updateData.videoUrl = `/uploads/${filename}`
+        updateData.videoUrl = fileUrl
         if (!isVideo) updateData.imageUrl = null 
       }
     }

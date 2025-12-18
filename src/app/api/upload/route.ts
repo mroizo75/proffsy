@@ -3,12 +3,13 @@ import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { uploadToR2, isR2Configured, generateUniqueFilename } from "@/lib/r2"
 
 // Sikre at mappene eksisterer
 async function ensureDirectoryExists(path: string) {
   try {
     await mkdir(path, { recursive: true })
-  } catch (error) {
+  } catch {
     // Ignorer feil hvis mappen allerede eksisterer
   }
 }
@@ -37,31 +38,39 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Bestem riktig mappe basert på type
-    const baseDir = join(process.cwd(), 'public/uploads')
-    const uploadDir = type === "variant" 
-      ? join(baseDir, 'variants')
-      : baseDir
+    // Generer unikt filnavn
+    const fileName = generateUniqueFilename(file.name.replace(/[^a-zA-Z0-9.-]/g, ''))
+    const prefix = type === "variant" ? "variants/" : ""
+    const fullFilename = `${prefix}${fileName}`
 
-    // Opprett mappene hvis de ikke eksisterer
-    await ensureDirectoryExists(uploadDir)
+    let url: string
 
-    // Generer filnavn
-    const timestamp = new Date().getTime()
-    const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`
-    const path = join(uploadDir, fileName)
-    
-    // Lagre filen
-    await writeFile(path, buffer)
+    // Bruk R2 hvis konfigurert, ellers lokal lagring
+    if (isR2Configured()) {
+      console.log('Uploading to R2:', fullFilename)
+      url = await uploadToR2(buffer, fullFilename, file.type)
+      console.log('R2 upload complete:', url)
+    } else {
+      // Fallback til lokal lagring
+      console.log('R2 not configured, using local storage')
+      const baseDir = join(process.cwd(), 'public/uploads')
+      const uploadDir = type === "variant" 
+        ? join(baseDir, 'variants')
+        : baseDir
 
-    // Returner URL til bildet
-    const url = type === "variant" 
-      ? `/uploads/variants/${fileName}`
-      : `/uploads/${fileName}`
+      await ensureDirectoryExists(uploadDir)
+      const path = join(uploadDir, fileName)
+      await writeFile(path, buffer)
+
+      url = type === "variant" 
+        ? `/uploads/variants/${fileName}`
+        : `/uploads/${fileName}`
+      console.log('Local file saved:', url)
+    }
 
     return NextResponse.json({ url })
   } catch (error) {
     console.error('[UPLOAD_ERROR]', error)
     return new NextResponse("Internal error", { status: 500 })
   }
-} 
+}
