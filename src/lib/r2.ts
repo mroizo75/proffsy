@@ -45,24 +45,19 @@ export async function uploadToR2(
 }
 
 // Slett fil fra R2
-export async function deleteFromR2(url: string): Promise<void> {
+export async function deleteFromR2(key: string): Promise<void> {
   if (!r2Client || !R2_BUCKET) {
-    throw new Error("R2 er ikke konfigurert. Sjekk miljøvariabler.")
+    return // R2 ikke konfigurert, ignorer
   }
 
-  // Ekstraher key fra URL (håndter både /api/r2/ og direkte keys)
-  let key: string
-  if (url.startsWith("/api/r2/")) {
-    key = url.replace("/api/r2/", "")
-  } else {
-    const urlParts = url.split("/")
-    key = urlParts.slice(3).join("/")
-  }
+  // Hvis key starter med uploads/, bruk som den er
+  // Ellers, legg til uploads/ prefix
+  const finalKey = key.startsWith("uploads/") ? key : `uploads/${key}`
 
   await r2Client.send(
     new DeleteObjectCommand({
       Bucket: R2_BUCKET,
-      Key: key,
+      Key: finalKey,
     })
   )
 }

@@ -2,9 +2,33 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { uploadToR2, isR2Configured, generateUniqueFilename } from "@/lib/r2"
-import { writeFile, mkdir, access } from "fs/promises"
+import { uploadToR2, deleteFromR2, isR2Configured, generateUniqueFilename } from "@/lib/r2"
+import { writeFile, mkdir, access, unlink } from "fs/promises"
 import { join } from "path"
+
+// Hjelpefunksjon for å slette fil (R2 eller lokal)
+async function deleteFile(url: string | null) {
+  if (!url) return
+
+  try {
+    if (url.startsWith("/api/r2/")) {
+      // R2 proxy URL - slett fra R2
+      const key = url.replace("/api/r2/", "")
+      await deleteFromR2(key)
+    } else if (url.startsWith("/uploads/")) {
+      // Lokal fil
+      const filepath = join(process.cwd(), "public", url)
+      await unlink(filepath)
+    } else if (url.includes(".r2.dev/") || url.includes(".r2.cloudflarestorage.com/")) {
+      // Direkte R2 URL - ekstraher key
+      const urlObj = new URL(url)
+      const key = urlObj.pathname.substring(1) // Fjern leading /
+      await deleteFromR2(key)
+    }
+  } catch {
+    // Ignorer feil ved sletting - filen kan allerede være slettet
+  }
+}
 
 export async function PUT(
   req: Request,
@@ -72,10 +96,13 @@ export async function PUT(
           fileUrl = `/uploads/${filename}`
         }
         
+        // Slett gammelt bilde/video fra R2/disk
         if (image) {
+          await deleteFile(existingHero.imageUrl)
           updateData.imageUrl = fileUrl
           if (isVideo) updateData.videoUrl = null
         } else {
+          await deleteFile(existingHero.videoUrl)
           updateData.videoUrl = fileUrl
           if (!isVideo) updateData.imageUrl = null 
         }
@@ -112,6 +139,20 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
+    // Hent hero for å finne filer som skal slettes
+    const hero = await prisma.hero.findUnique({
+      where: { id }
+    })
+
+    if (!hero) {
+      return new NextResponse("Hero not found", { status: 404 })
+    }
+
+    // Slett filer fra R2/disk
+    await deleteFile(hero.imageUrl)
+    await deleteFile(hero.videoUrl)
+
+    // Slett hero fra database
     await prisma.hero.delete({
       where: { id }
     })

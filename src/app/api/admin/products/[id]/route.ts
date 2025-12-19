@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { deleteFromR2, isR2Configured } from "@/lib/r2"
+import { unlink } from "fs/promises"
+import { join } from "path"
 
 interface ImageInput {
   url: string
@@ -15,6 +18,30 @@ interface VariantInput {
   stock: number
   colorId?: string
   images?: ImageInput[]
+}
+
+// Hjelpefunksjon for å slette fil (R2 eller lokal)
+async function deleteFile(url: string | null) {
+  if (!url) return
+
+  try {
+    if (url.startsWith("/api/r2/")) {
+      // R2 proxy URL - slett fra R2
+      const key = url.replace("/api/r2/", "")
+      await deleteFromR2(key)
+    } else if (url.startsWith("/uploads/")) {
+      // Lokal fil
+      const filepath = join(process.cwd(), "public", url)
+      await unlink(filepath)
+    } else if (url.includes(".r2.dev/") || url.includes(".r2.cloudflarestorage.com/")) {
+      // Direkte R2 URL - ekstraher key
+      const urlObj = new URL(url)
+      const key = urlObj.pathname.substring(1) // Fjern leading /
+      await deleteFromR2(key)
+    }
+  } catch {
+    // Ignorer feil ved sletting - filen kan allerede være slettet
+  }
 }
 
 export async function PUT(
@@ -87,8 +114,13 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
+    // Hent produktet med bilder og varianter før sletting
     const existingProduct = await prisma.product.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        images: true,
+        variants: true
+      }
     })
 
     if (!existingProduct) {
@@ -98,6 +130,19 @@ export async function DELETE(
       )
     }
 
+    // Slett produktbilder fra R2/disk
+    for (const image of existingProduct.images) {
+      await deleteFile(image.url)
+    }
+
+    // Slett variant-bilder fra R2/disk
+    for (const variant of existingProduct.variants) {
+      if (variant.image) {
+        await deleteFile(variant.image)
+      }
+    }
+
+    // Slett produktet fra databasen (cascade sletter bilder og varianter)
     await prisma.product.delete({
       where: { id }
     })
@@ -126,6 +171,32 @@ export async function PATCH(
     }
 
     const body = await req.json()
+
+    // Hent eksisterende produktbilder for å sammenligne
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      include: { images: true, variants: true }
+    })
+
+    if (existingProduct) {
+      // Finn bilder som skal slettes (ikke lenger i body.images)
+      const newImageUrls = body.images?.map((img: ImageInput) => img.url) || []
+      for (const oldImage of existingProduct.images) {
+        if (!newImageUrls.includes(oldImage.url)) {
+          await deleteFile(oldImage.url)
+        }
+      }
+
+      // Finn variant-bilder som skal slettes
+      const newVariantImages = body.variants?.map((v: VariantInput) => 
+        v.images && v.images.length > 0 ? v.images[0].url : null
+      ).filter(Boolean) || []
+      for (const oldVariant of existingProduct.variants) {
+        if (oldVariant.image && !newVariantImages.includes(oldVariant.image)) {
+          await deleteFile(oldVariant.image)
+        }
+      }
+    }
 
     const product = await prisma.product.update({
       where: {
