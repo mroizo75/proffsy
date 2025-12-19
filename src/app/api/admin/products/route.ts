@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { uploadToR2, isR2Configured, generateUniqueFilename } from "@/lib/r2"
+import { writeFile, mkdir } from "fs/promises"
+import { join } from "path"
 
 interface ImageInput {
   url: string
@@ -15,6 +18,31 @@ interface VariantInput {
   stock: number
   colorId?: string
   images?: ImageInput[]
+  image?: string | null
+}
+
+async function ensureDirectoryExists(path: string) {
+  try {
+    await mkdir(path, { recursive: true })
+  } catch {
+    // Ignorer feil hvis mappen allerede eksisterer
+  }
+}
+
+async function uploadImage(file: File): Promise<string> {
+  const bytes = await file.arrayBuffer()
+  const buffer = Buffer.from(bytes)
+  const filename = generateUniqueFilename(file.name.replace(/[^a-zA-Z0-9.-]/g, ''))
+  const fullFilename = `products/${filename}`
+
+  if (isR2Configured()) {
+    return await uploadToR2(buffer, fullFilename, file.type || "image/jpeg")
+  } else {
+    const uploadDir = join(process.cwd(), "public", "uploads", "products")
+    await ensureDirectoryExists(uploadDir)
+    await writeFile(join(uploadDir, filename), buffer)
+    return `/uploads/products/${filename}`
+  }
 }
 
 export async function GET() {
@@ -45,59 +73,109 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    // Debug: Sjekk content-type og body
-    const contentType = req.headers.get("content-type")
-    console.log("Content-Type:", contentType)
+    const contentType = req.headers.get("content-type") || ""
     
-    // Sjekk om det er JSON eller FormData
-    let body
-    if (contentType?.includes("application/json")) {
-      const text = await req.text()
-      console.log("Raw body (first 500 chars):", text.substring(0, 500))
-      try {
-        body = JSON.parse(text)
-      } catch (parseError) {
-        return new NextResponse(
-          JSON.stringify({ 
-            error: "Invalid JSON", 
-            details: parseError instanceof Error ? parseError.message : "Could not parse JSON",
-            receivedContentType: contentType,
-            bodyPreview: text.substring(0, 200)
-          }), 
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        )
+    let name: string
+    let description: string
+    let price: number
+    let sku: string
+    let stock: number
+    let categoryIds: string[] = []
+    let images: ImageInput[] = []
+    let variants: VariantInput[] = []
+    let weight: number | undefined
+
+    // Håndter både JSON og FormData
+    if (contentType.includes("application/json")) {
+      const body = await req.json()
+      name = body.name
+      description = body.description
+      price = body.price
+      sku = body.sku
+      stock = body.stock
+      categoryIds = body.categoryIds || []
+      images = body.images || []
+      variants = body.variants || []
+      weight = body.weight
+    } else if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData()
+      
+      name = formData.get("name") as string
+      description = formData.get("description") as string
+      price = parseFloat(formData.get("price") as string) || 0
+      sku = formData.get("sku") as string
+      stock = parseInt(formData.get("stock") as string) || 0
+      
+      // Parse categories fra skjema
+      const categoriesJson = formData.get("categories") as string
+      if (categoriesJson) {
+        try {
+          categoryIds = JSON.parse(categoriesJson)
+        } catch {
+          categoryIds = []
+        }
+      }
+      
+      // Parse variants fra skjema
+      const variantsJson = formData.get("variants") as string
+      if (variantsJson) {
+        try {
+          variants = JSON.parse(variantsJson)
+        } catch {
+          variants = []
+        }
+      }
+      
+      // Håndter bildeopplasting
+      const imageFiles = formData.getAll("images") as File[]
+      for (const file of imageFiles) {
+        if (file && file.size > 0) {
+          const url = await uploadImage(file)
+          images.push({ url })
+        }
+      }
+      
+      // Sjekk også for eksisterende bilder (URLs sendt som strings)
+      const existingImages = formData.getAll("existingImages") as string[]
+      for (const url of existingImages) {
+        if (url) {
+          images.push({ url })
+        }
       }
     } else {
       return new NextResponse(
-        JSON.stringify({ 
-          error: "Invalid content type", 
-          details: `Expected application/json, got: ${contentType}`
-        }), 
+        JSON.stringify({ error: "Unsupported content type" }), 
         { status: 400, headers: { "Content-Type": "application/json" } }
       )
     }
-    
-    console.log("Parsed body keys:", Object.keys(body))
+
+    // Validering
+    if (!name || !description || !sku) {
+      return new NextResponse(
+        JSON.stringify({ error: "Missing required fields: name, description, sku" }), 
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      )
+    }
 
     const product = await prisma.product.create({
       data: {
-        name: body.name,
-        description: body.description,
-        price: body.price,
-        sku: body.sku,
-        stock: body.stock,
-        weight: body.weight || undefined,
+        name,
+        description,
+        price,
+        sku,
+        stock,
+        weight: weight || undefined,
         images: {
-          create: body.images.map((image: ImageInput) => ({
+          create: images.map((image: ImageInput) => ({
             url: image.url,
             alt: image.alt || ""
           }))
         },
-        categories: {
-          connect: body.categoryIds.map((id: string) => ({ id }))
-        },
+        categories: categoryIds.length > 0 ? {
+          connect: categoryIds.map((id: string) => ({ id }))
+        } : undefined,
         variants: {
-          create: body.variants?.map((variant: VariantInput) => ({
+          create: variants?.map((variant: VariantInput) => ({
             name: variant.name,
             sku: variant.sku,
             price: variant.price,
@@ -105,9 +183,9 @@ export async function POST(req: Request) {
             color: variant.colorId ? {
               connect: { id: variant.colorId }
             } : undefined,
-            image: variant.images && variant.images.length > 0 
+            image: variant.image || (variant.images && variant.images.length > 0 
               ? variant.images[0].url 
-              : null
+              : null)
           })) || []
         }
       },
