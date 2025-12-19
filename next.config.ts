@@ -11,7 +11,20 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'www.engangslisens.no',
-      }
+      },
+      // Cloudflare R2 domener
+      {
+        protocol: 'https',
+        hostname: '*.r2.cloudflarestorage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.dev',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pub-*.r2.dev',
+      },
     ],
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
