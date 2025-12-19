@@ -6,7 +6,6 @@ const R2_ENDPOINT = process.env.R2_ENDPOINT
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
 const R2_BUCKET = process.env.R2_BUCKET
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL // Valgfri: custom public URL
 
 // Opprett S3-klient for R2
 export const r2Client = STORAGE_TYPE === "r2" && R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET
@@ -41,20 +40,8 @@ export async function uploadToR2(
     })
   )
 
-  // Returner offentlig URL
-  if (R2_PUBLIC_URL) {
-    return `${R2_PUBLIC_URL}/${key}`
-  }
-
-  // Bygg URL fra endpoint - håndter ulike formater
-  try {
-    const endpointUrl = new URL(R2_ENDPOINT)
-    // Cloudflare R2 public URL format
-    return `https://pub-${R2_BUCKET}.${endpointUrl.host.replace('.r2.cloudflarestorage.com', '')}.r2.dev/${key}`
-  } catch {
-    // Fallback - bruk endpoint direkte
-    return `${R2_ENDPOINT}/${R2_BUCKET}/${key}`
-  }
+  // Returner lokal proxy URL - dette fungerer uten public bucket
+  return `/api/r2/${key}`
 }
 
 // Slett fil fra R2
@@ -63,9 +50,14 @@ export async function deleteFromR2(url: string): Promise<void> {
     throw new Error("R2 er ikke konfigurert. Sjekk miljøvariabler.")
   }
 
-  // Ekstraher key fra URL
-  const urlParts = url.split("/")
-  const key = urlParts.slice(3).join("/")
+  // Ekstraher key fra URL (håndter både /api/r2/ og direkte keys)
+  let key: string
+  if (url.startsWith("/api/r2/")) {
+    key = url.replace("/api/r2/", "")
+  } else {
+    const urlParts = url.split("/")
+    key = urlParts.slice(3).join("/")
+  }
 
   await r2Client.send(
     new DeleteObjectCommand({

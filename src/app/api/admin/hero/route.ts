@@ -106,6 +106,7 @@ export async function POST(req: Request) {
       try {
         fileUrl = await uploadToR2(buffer, filename, contentType)
         console.log("R2 upload success, URL:", fileUrl)
+        console.log("R2_PUBLIC_URL env:", process.env.R2_PUBLIC_URL || "NOT SET")
       } catch (r2Error) {
         console.error("R2 upload failed:", r2Error)
         throw r2Error
