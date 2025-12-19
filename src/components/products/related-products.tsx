@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db"
 import Link from "next/link"
 import Image from "next/image"
 import { formatPrice } from "@/lib/utils"
+import { ImageIcon } from "lucide-react"
 
 interface RelatedProductsProps {
   categoryIds: string[]
@@ -39,14 +40,20 @@ export async function RelatedProducts({ categoryIds, currentProductId }: Related
             key={product.id}
             href={`/products/${product.id}`}
             className="group">
-            <div className="aspect-square relative rounded-lg overflow-hidden mb-3">
-              <Image
-                src={product.images[0]?.url || '/placeholder.png'}
-                alt={product.name}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform"
-                sizes="(min-width: 1024px) 25vw, 50vw"
-              />
+            <div className="aspect-square relative rounded-lg overflow-hidden mb-3 bg-muted">
+              {product.images[0]?.url ? (
+                <Image
+                  src={product.images[0].url}
+                  alt={product.name}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform"
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                </div>
+              )}
             </div>
             <h3 className="font-medium mb-1">{product.name}</h3>
             <p className="text-muted-foreground">

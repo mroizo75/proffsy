@@ -71,18 +71,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
     // Håndter tilfeller hvor produktet ikke finnes
     return notFound()
   }
-  
-  // Sikre at produkt alltid har et bilde
-  if (!product.images || product.images.length === 0) {
-    product.images = [{ 
-      url: "/placeholder.jpg", 
-      alt: "Ingen bilde tilgjengelig", 
-      id: "placeholder",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      productId: product.id
-    }]
-  }
 
   return <ProductClient product={product} />
 } 

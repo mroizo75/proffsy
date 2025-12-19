@@ -37,10 +37,8 @@ export function ProductClient({ product }: ProductClientProps) {
           .replace(/^products\//, '')
         return { url: `/uploads/products/${cleanImagePath}` }
       })
-    } else {
-      // Fallback til placeholder
-      newImages.push({ url: '/images/no-image.png' })
     }
+    // Ingen fallback - ProductGallery håndterer tomme arrays
 
     setCurrentImages(newImages)
   }, [selectedVariant, product.images])
@@ -53,13 +51,8 @@ export function ProductClient({ product }: ProductClientProps) {
   // Sikre at product.images alltid er et array
   const productImages = product.images || []
   
-  // Legg til variantbilder hvis produktet har varianter
+  // Bruk produktbilder eller tom array (ProductGallery håndterer tomme arrays)
   const allImages = [...productImages]
-  
-  // Hvis det ikke finnes bilder, legg til et placeholder-bilde
-  if (allImages.length === 0) {
-    allImages.push({ url: "/placeholder.jpg", alt: "Produktbilde ikke tilgjengelig" })
-  }
 
   return (
     <div className="container py-10">
@@ -124,7 +117,7 @@ export function ProductClient({ product }: ProductClientProps) {
               id: product.id,
               name: `${product.name} ${selectedVariant ? `- ${selectedVariant.name}` : ''}`,
               price: selectedVariant?.price || product.price,
-              image: selectedVariant?.image || (product.images[0]?.url || '/images/no-image.png'),
+              image: selectedVariant?.image || product.images[0]?.url || "",
               variantId: selectedVariant?.id,
               variantName: selectedVariant?.name,
               sku: selectedVariant?.sku || product.sku,

@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { ImageIcon } from "lucide-react"
 
 type GalleryProps = {
   images: { url: string; alt?: string }[]
@@ -10,33 +11,37 @@ type GalleryProps = {
 
 export function ProductGallery({ images }: GalleryProps) {
   const [mainImage, setMainImage] = useState<string>("")
+  const [imageError, setImageError] = useState(false)
   
   useEffect(() => {
-    // Sett det første bildet som hovedbilde eller bruk placeholder
+    // Sett det første bildet som hovedbilde
     if (images && images.length > 0) {
       setMainImage(images[0].url)
+      setImageError(false)
     } else {
-      // Bruk en faktisk URL som finnes i prosjektet
-      setMainImage("/placeholder.jpg")
+      setMainImage("")
     }
   }, [images])
+
+  const hasValidImage = mainImage && !imageError
 
   return (
     <div className="grid gap-4 md:grid-cols-4">
       <div className="md:order-last md:col-span-3">
         <div className="relative aspect-square">
-          {mainImage ? (
+          {hasValidImage ? (
             <Image
               src={mainImage}
               alt="Hovedbilde"
               fill
               className="object-cover rounded-lg"
               priority
-              onError={() => setMainImage("/placeholder.jpg")} // Backup fallback
+              onError={() => setImageError(true)}
             />
           ) : (
-            <div className="flex items-center justify-center h-full bg-slate-100 rounded-lg">
-              <span className="text-muted-foreground">Ingen bilde tilgjengelig</span>
+            <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg">
+              <ImageIcon className="h-16 w-16 text-muted-foreground/50" />
+              <span className="text-muted-foreground mt-2">Ingen bilde tilgjengelig</span>
             </div>
           )}
         </div>
@@ -52,7 +57,10 @@ export function ProductGallery({ images }: GalleryProps) {
                 "relative aspect-square cursor-pointer rounded-lg border-2",
                 mainImage === image.url ? "border-primary" : "border-transparent"
               )}
-              onClick={() => setMainImage(image.url)}
+              onClick={() => {
+                setMainImage(image.url)
+                setImageError(false)
+              }}
             >
               <Image
                 src={image.url}
@@ -62,10 +70,8 @@ export function ProductGallery({ images }: GalleryProps) {
               />
             </div>
           ))
-        ) : (
-          <div className="text-muted-foreground">Ingen flere bilder tilgjengelig</div>
-        )}
+        ) : null}
       </div>
     </div>
   )
-} 
+}
