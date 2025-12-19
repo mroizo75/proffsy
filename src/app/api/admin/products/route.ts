@@ -45,7 +45,39 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const body = await req.json()
+    // Debug: Sjekk content-type og body
+    const contentType = req.headers.get("content-type")
+    console.log("Content-Type:", contentType)
+    
+    // Sjekk om det er JSON eller FormData
+    let body
+    if (contentType?.includes("application/json")) {
+      const text = await req.text()
+      console.log("Raw body (first 500 chars):", text.substring(0, 500))
+      try {
+        body = JSON.parse(text)
+      } catch (parseError) {
+        return new NextResponse(
+          JSON.stringify({ 
+            error: "Invalid JSON", 
+            details: parseError instanceof Error ? parseError.message : "Could not parse JSON",
+            receivedContentType: contentType,
+            bodyPreview: text.substring(0, 200)
+          }), 
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        )
+      }
+    } else {
+      return new NextResponse(
+        JSON.stringify({ 
+          error: "Invalid content type", 
+          details: `Expected application/json, got: ${contentType}`
+        }), 
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      )
+    }
+    
+    console.log("Parsed body keys:", Object.keys(body))
 
     const product = await prisma.product.create({
       data: {
