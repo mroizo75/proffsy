@@ -46,7 +46,9 @@ export default async function HomePage() {
     buttonLink: hero.buttonLink || null,
     imageUrl: hero.imageUrl || null,
     videoUrl: hero.videoUrl || null,
-    isVideo: hero.isVideo || false
+    isVideo: hero.isVideo || false,
+    showText: hero.showText ?? true,
+    overlayOpacity: hero.overlayOpacity ?? 0
   } : null;
 
   return (

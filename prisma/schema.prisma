@@ -256,19 +256,21 @@ enum ShippingStatus {
 }
 
 model Hero {
-  id          String    @id @default(cuid())
-  title       String
-  description String?   @db.Text
-  buttonText  String?
-  buttonLink  String?
-  imageUrl    String?   // Gjør denne valgfri
-  videoUrl    String?   // Legg til videoUrl
-  isVideo     Boolean   @default(false)  // Flag for å indikere om det er video
-  startDate   DateTime?
-  endDate     DateTime?
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  title          String
+  description    String?   @db.Text
+  buttonText     String?
+  buttonLink     String?
+  imageUrl       String?   // Gjør denne valgfri
+  videoUrl       String?   // Legg til videoUrl
+  isVideo        Boolean   @default(false)  // Flag for å indikere om det er video
+  showText       Boolean   @default(true)   // Vis/skjul tekst overlay
+  overlayOpacity Int       @default(0)      // Overlay opacity 0-100 (0 = ingen overlay)
+  startDate      DateTime?
+  endDate        DateTime?
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model CompanySettings {

@@ -57,13 +57,17 @@ export async function PUT(
     const buttonText = formData.get("buttonText") as string || null
     const buttonLink = formData.get("buttonLink") as string || null
     const isVideo = formData.get("isVideo") === "true"
+    const showText = formData.get("showText") !== "false" // default true
+    const overlayOpacity = parseInt(formData.get("overlayOpacity") as string) || 0
     
     const updateData: Record<string, unknown> = {
       title,
       description,
       buttonText,
       buttonLink,
-      isVideo
+      isVideo,
+      showText,
+      overlayOpacity
     }
 
     const image = formData.get("image")
