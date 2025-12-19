@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { ProductGallery } from "@/components/products/product-gallery"
 import { AddToCartButton } from "@/components/cart/add-to-cart-button"
 import { formatPrice } from "@/lib/utils"
@@ -13,46 +13,26 @@ interface ProductClientProps {
 
 export function ProductClient({ product }: ProductClientProps) {
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0])
-  const [currentImages, setCurrentImages] = useState<{ url: string }[]>([])
-
-  // Debug logging
-  useEffect(() => {
-  }, [product.images, selectedVariant])
-
-  // Oppdater bilder når variant endres
-  useEffect(() => {
-    let newImages: { url: string }[] = []
-
-    if (selectedVariant?.image) {
-      // For variantbilder - fjern eventuell /uploads/ og variants/
-      const cleanImagePath = selectedVariant.image
-        .replace(/^\/uploads\//, '')
-        .replace(/^variants\//, '')
-      newImages.push({ url: `/uploads/variants/${cleanImagePath}` })
-    } else if (product.images && product.images.length > 0) {
-      // For produktbilder
-      newImages = product.images.map((img: any) => {
-        const cleanImagePath = img.url
-          .replace(/^\/uploads\//, '')
-          .replace(/^products\//, '')
-        return { url: `/uploads/products/${cleanImagePath}` }
-      })
-    }
-    // Ingen fallback - ProductGallery håndterer tomme arrays
-
-    setCurrentImages(newImages)
-  }, [selectedVariant, product.images])
 
   // Håndter variant endring
   const handleVariantChange = (variant: any) => {
     setSelectedVariant(variant)
   }
 
-  // Sikre at product.images alltid er et array
-  const productImages = product.images || []
-  
-  // Bruk produktbilder eller tom array (ProductGallery håndterer tomme arrays)
-  const allImages = [...productImages]
+  // Bygg bilderliste - bruk URL direkte fra database (støtter både /api/r2/... og /uploads/...)
+  const getImages = () => {
+    // Hvis valgt variant har bilde, vis det
+    if (selectedVariant?.image) {
+      return [{ url: selectedVariant.image }]
+    }
+    // Ellers bruk produktbilder
+    if (product.images && product.images.length > 0) {
+      return product.images.map((img: any) => ({ url: img.url }))
+    }
+    return []
+  }
+
+  const allImages = getImages()
 
   return (
     <div className="container py-10">
