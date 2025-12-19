@@ -91,7 +91,13 @@ export async function POST(req: Request) {
     })
 
     return NextResponse.json(product)
-  } catch {
-    return new NextResponse("Intern feil", { status: 500 })
+  } catch (error) {
+    return new NextResponse(
+      JSON.stringify({ 
+        error: "Intern feil", 
+        details: error instanceof Error ? error.message : "Unknown error"
+      }), 
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    )
   }
 }
