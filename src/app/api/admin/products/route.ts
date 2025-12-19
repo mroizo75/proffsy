@@ -126,7 +126,22 @@ export async function POST(req: Request) {
         }
       }
       
-      // Håndter bildeopplasting
+      // Håndter opplastede bilder (allerede lastet opp via /api/admin/products/upload)
+      const uploadedImagesJson = formData.get("uploadedImages") as string
+      if (uploadedImagesJson) {
+        try {
+          const uploadedUrls = JSON.parse(uploadedImagesJson) as string[]
+          for (const url of uploadedUrls) {
+            if (url) {
+              images.push({ url })
+            }
+          }
+        } catch {
+          // Ignorer parse-feil
+        }
+      }
+      
+      // Håndter bildeopplasting direkte fra FormData (for bakoverkompatibilitet)
       const imageFiles = formData.getAll("images") as File[]
       for (const file of imageFiles) {
         if (file && file.size > 0) {

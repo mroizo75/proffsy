@@ -170,6 +170,40 @@ export function ProductDialog({ trigger, product }: ProductDialogProps) {
     try {
       const formData = new FormData(event.currentTarget)
       
+      // Last opp nye produktbilder først
+      const uploadedImageUrls: string[] = []
+      
+      // Behold eksisterende bilder
+      for (const preview of imagePreviews) {
+        if (preview.existing) {
+          uploadedImageUrls.push(preview.url)
+        } else if (preview.file) {
+          // Last opp nye bilder
+          const imageFormData = new FormData()
+          imageFormData.append("image", preview.file)
+          imageFormData.append("type", "products")
+          
+          const uploadResponse = await fetch("/api/admin/products/upload", {
+            method: "POST",
+            body: imageFormData
+          })
+          
+          if (uploadResponse.ok) {
+            const data = await uploadResponse.json()
+            uploadedImageUrls.push(data.url)
+          }
+        }
+      }
+      
+      // Fjern images fra formData (vi sender dem separat som JSON)
+      formData.delete("images")
+      
+      // Legg til bildene som JSON
+      formData.append("uploadedImages", JSON.stringify(uploadedImageUrls))
+      
+      // Legg til kategorier
+      formData.append("categories", JSON.stringify(selectedCategories))
+      
       // Legg til variants med bilder
       formData.append("variants", JSON.stringify(variants.map(variant => ({
         ...variant,
