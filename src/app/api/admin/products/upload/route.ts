@@ -3,14 +3,13 @@ import { join } from "path"
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { uploadToR2, isR2Configured, generateUniqueFilename } from "@/lib/r2"
 
 async function ensureDirectoryExists(path: string) {
   try {
     await mkdir(path, { recursive: true })
-  } catch (error) {
-    if ((error as any).code !== 'EEXIST') {
-      throw error
-    }
+  } catch {
+    // Ignorer feil hvis mappen allerede eksisterer
   }
 }
 
@@ -23,7 +22,7 @@ export async function POST(req: Request) {
 
     const formData = await req.formData()
     const file = formData.get("image") as File
-    const type = formData.get("type") as string
+    const type = formData.get("type") as string || "products"
 
     if (!file) {
       return new NextResponse("No file uploaded", { status: 400 })
@@ -33,26 +32,36 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(bytes)
 
     // Generer et unikt filnavn
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`
-    const filename = `${uniqueSuffix}-${file.name}`
+    const filename = generateUniqueFilename(file.name.replace(/[^a-zA-Z0-9.-]/g, ''))
     
-    // Bestem mappe basert på type
-    const uploadDir = type === "variants" ? "variants" : "products"
-    const basePath = join(process.cwd(), "public", "uploads")
-    const fullPath = join(basePath, uploadDir)
+    // Bestem prefix basert på type
+    const prefix = type === "variants" ? "variants/" : "products/"
+    const fullFilename = `${prefix}${filename}`
+
+    let url: string
+
+    if (isR2Configured()) {
+      // Last opp til R2
+      url = await uploadToR2(buffer, fullFilename, file.type || "image/jpeg")
+    } else {
+      // Fallback til lokal lagring
+      const basePath = join(process.cwd(), "public", "uploads")
+      const uploadDir = type === "variants" 
+        ? join(basePath, "variants") 
+        : join(basePath, "products")
+      
+      await ensureDirectoryExists(basePath)
+      await ensureDirectoryExists(uploadDir)
+      
+      await writeFile(join(uploadDir, filename), buffer)
+      
+      url = type === "variants"
+        ? `/uploads/variants/${filename}`
+        : `/uploads/products/${filename}`
+    }
     
-    // Opprett mapper hvis de ikke eksisterer
-    await ensureDirectoryExists(basePath)
-    await ensureDirectoryExists(fullPath)
-    
-    // Lagre filen
-    await writeFile(join(fullPath, filename), buffer)
-    
-    // Returner URL til filen
-    return NextResponse.json({ 
-      url: `/uploads/${uploadDir}/${filename}` 
-    })
-  } catch (error) {
+    return NextResponse.json({ url })
+  } catch {
     return new NextResponse("Error uploading file", { status: 500 })
   }
-} 
+}
