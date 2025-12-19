@@ -157,6 +157,12 @@ export async function POST(req: Request) {
       )
     }
 
+    // Filtrer bort tomme varianter (varianter er valgfrie)
+    const validVariants = (variants || []).filter((variant: VariantInput) => 
+      variant.name && variant.name.trim() !== "" && 
+      variant.sku && variant.sku.trim() !== ""
+    )
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -165,29 +171,29 @@ export async function POST(req: Request) {
         sku,
         stock,
         weight: weight || undefined,
-        images: {
+        images: images.length > 0 ? {
           create: images.map((image: ImageInput) => ({
             url: image.url,
             alt: image.alt || ""
           }))
-        },
+        } : undefined,
         categories: categoryIds.length > 0 ? {
           connect: categoryIds.map((id: string) => ({ id }))
         } : undefined,
-        variants: {
-          create: variants?.map((variant: VariantInput) => ({
+        variants: validVariants.length > 0 ? {
+          create: validVariants.map((variant: VariantInput) => ({
             name: variant.name,
             sku: variant.sku,
-            price: variant.price,
-            stock: variant.stock,
+            price: variant.price || 0,
+            stock: variant.stock || 0,
             color: variant.colorId ? {
               connect: { id: variant.colorId }
             } : undefined,
             image: variant.image || (variant.images && variant.images.length > 0 
               ? variant.images[0].url 
               : null)
-          })) || []
-        }
+          }))
+        } : undefined
       },
       include: {
         images: true,
