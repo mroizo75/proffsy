@@ -60,7 +60,8 @@ export async function PUT(
     const showText = formData.get("showText") !== "false" // default true
     const overlayOpacity = parseInt(formData.get("overlayOpacity") as string) || 0
     
-    const updateData: Record<string, unknown> = {
+    // Bruk Record<string, unknown> for å støtte nye felt som kanskje ikke er i Prisma-typen enda
+    const updateData = {
       title,
       description,
       buttonText,
@@ -68,7 +69,7 @@ export async function PUT(
       isVideo,
       showText,
       overlayOpacity
-    }
+    } as Parameters<typeof prisma.hero.update>[0]['data']
 
     const image = formData.get("image")
     const video = formData.get("video")
@@ -127,8 +128,14 @@ export async function PUT(
     })
     
     return NextResponse.json(updatedHero)
-  } catch {
-    return new NextResponse("Internal Server Error", { status: 500 })
+  } catch (error) {
+    return new NextResponse(
+      JSON.stringify({ 
+        error: "Internal Server Error", 
+        details: error instanceof Error ? error.message : "Unknown error"
+      }), 
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    )
   }
 }
 
