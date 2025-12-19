@@ -5,10 +5,17 @@ import { authOptions } from "@/lib/auth"
 import { calculateShipping } from "@/lib/shipping"
 import { fetchServicePoints } from "@/lib/postnord-servicepoints"
 
-interface ShippingItem {
-  weight?: number
+interface CartItem {
+  id: string
   quantity: number
+  weight?: number
 }
+
+// Standardverdier for frakt
+const DEFAULT_WEIGHT = 500 // gram
+const DEFAULT_LENGTH = 20  // cm
+const DEFAULT_WIDTH = 15   // cm
+const DEFAULT_HEIGHT = 10  // cm
 
 // Fallback bedriftsadresse hvis ikke konfigurert
 const DEFAULT_FROM_ADDRESS = {
@@ -40,10 +47,37 @@ export async function POST(req: Request) {
       )
     }
 
-    // Beregn totalvekt
-    const totalWeight = items.reduce((sum: number, item: ShippingItem) => {
-      return sum + (item.weight || 0.5) * item.quantity
-    }, 0)
+    // Hent produktdata fra databasen for nøyaktig vekt og dimensjoner
+    const productIds = items.map((item: CartItem) => item.id)
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, weight: true, length: true, width: true, height: true }
+    })
+    
+    // Lag et map for rask oppslag
+    const productMap = new Map(products.map(p => [p.id, p]))
+    
+    // Beregn totalvekt og dimensjoner
+    let totalWeight = 0
+    let maxLength = 0
+    let maxWidth = 0
+    let totalHeight = 0
+    
+    for (const item of items as CartItem[]) {
+      const product = productMap.get(item.id)
+      const weight = product?.weight || DEFAULT_WEIGHT
+      const length = product?.length || DEFAULT_LENGTH
+      const width = product?.width || DEFAULT_WIDTH
+      const height = product?.height || DEFAULT_HEIGHT
+      
+      totalWeight += weight * item.quantity
+      maxLength = Math.max(maxLength, length)
+      maxWidth = Math.max(maxWidth, width)
+      totalHeight += height * item.quantity // Stables oppå hverandre
+    }
+    
+    // Konverter til kg for API (vekt lagres i gram)
+    const totalWeightKg = totalWeight / 1000
 
     // Hent bedriftsinnstillinger, bruk fallback hvis ikke funnet
     let fromAddress = DEFAULT_FROM_ADDRESS
@@ -64,11 +98,16 @@ export async function POST(req: Request) {
 
     try {
       // Hent fraktalternativer fra PostNord
+      // calculateShipping forventer vekt i kg
       const shippingResult = await calculateShipping({
-        weight: Math.max(totalWeight, 0.1),
+        weight: Math.max(totalWeightKg, 0.1),
         fromPostalCode: fromAddress.postalCode,
         toPostalCode: toAddress.postalCode,
         toCountry: toAddress.country || "NO",
+        // Dimensjoner i cm
+        length: maxLength,
+        width: maxWidth,
+        height: totalHeight
       })
 
       let shippingRates = shippingResult.options || []

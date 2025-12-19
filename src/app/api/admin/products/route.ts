@@ -80,10 +80,13 @@ export async function POST(req: Request) {
     let price: number
     let sku: string
     let stock: number
+    let weight: number | undefined
+    let length: number | undefined
+    let width: number | undefined
+    let height: number | undefined
     let categoryIds: string[] = []
     let images: ImageInput[] = []
     let variants: VariantInput[] = []
-    let weight: number | undefined
 
     // Håndter både JSON og FormData
     if (contentType.includes("application/json")) {
@@ -93,10 +96,13 @@ export async function POST(req: Request) {
       price = body.price
       sku = body.sku
       stock = body.stock
+      weight = body.weight
+      length = body.length
+      width = body.width
+      height = body.height
       categoryIds = body.categoryIds || []
       images = body.images || []
       variants = body.variants || []
-      weight = body.weight
     } else if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData()
       
@@ -105,6 +111,17 @@ export async function POST(req: Request) {
       price = parseFloat(formData.get("price") as string) || 0
       sku = formData.get("sku") as string
       stock = parseInt(formData.get("stock") as string) || 0
+      
+      // Parse vekt og dimensjoner
+      const weightStr = formData.get("weight") as string
+      const lengthStr = formData.get("length") as string
+      const widthStr = formData.get("width") as string
+      const heightStr = formData.get("height") as string
+      
+      weight = weightStr ? parseFloat(weightStr) : undefined
+      length = lengthStr ? parseFloat(lengthStr) : undefined
+      width = widthStr ? parseFloat(widthStr) : undefined
+      height = heightStr ? parseFloat(heightStr) : undefined
       
       // Parse categories fra skjema
       const categoriesJson = formData.get("categories") as string
@@ -186,6 +203,9 @@ export async function POST(req: Request) {
         sku,
         stock,
         weight: weight || undefined,
+        length: length || undefined,
+        width: width || undefined,
+        height: height || undefined,
         images: images.length > 0 ? {
           create: images.map((image: ImageInput) => ({
             url: image.url,

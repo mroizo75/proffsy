@@ -69,6 +69,12 @@ export async function PUT(
       ? JSON.parse(formData.get("categories") as string) 
       : []
 
+    // Parse vekt og dimensjoner
+    const weightStr = formData.get("weight") as string
+    const lengthStr = formData.get("length") as string
+    const widthStr = formData.get("width") as string
+    const heightStr = formData.get("height") as string
+
     const product = await prisma.product.update({
       where: {
         id
@@ -78,7 +84,11 @@ export async function PUT(
         description: formData.get("description") as string,
         price: parseFloat(formData.get("price") as string),
         sku: formData.get("sku") as string,
-        stock: parseInt(formData.get("stock") as string),
+        stock: parseInt(formData.get("stock") as string) || 0,
+        weight: weightStr ? parseFloat(weightStr) : undefined,
+        length: lengthStr ? parseFloat(lengthStr) : undefined,
+        width: widthStr ? parseFloat(widthStr) : undefined,
+        height: heightStr ? parseFloat(heightStr) : undefined,
         categories: {
           set: [],
           connect: categoryIds.map((catId: string) => ({ id: catId }))
@@ -209,6 +219,9 @@ export async function PATCH(
         sku: body.sku,
         stock: body.stock,
         weight: body.weight || undefined,
+        length: body.length || undefined,
+        width: body.width || undefined,
+        height: body.height || undefined,
         images: {
           deleteMany: {},
           create: body.images.map((image: ImageInput) => ({

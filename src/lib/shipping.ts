@@ -9,10 +9,13 @@ if (!POSTNORD_API_KEY) {
 }
 
 interface ShippingParams {
-  weight: number
+  weight: number        // Vekt i kg
   fromPostalCode: string
   toPostalCode: string
   toCountry: string
+  length?: number       // Lengde i cm
+  width?: number        // Bredde i cm
+  height?: number       // Høyde i cm
 }
 
 // PostNord tjeneste-IDs og mapping med norske oversettelser
@@ -115,7 +118,7 @@ interface PostNordDeliveryOptionRequest {
 
 // Korrekt PostNord API kall
 async function fetchPostNordDeliveryOptions(params: ShippingParams) {
-  const { weight, fromPostalCode, toPostalCode, toCountry } = params
+  const { weight, fromPostalCode, toPostalCode, toCountry, length, width, height } = params
   
   try {
     // Valider API-nøkkel
@@ -130,6 +133,13 @@ async function fetchPostNordDeliveryOptions(params: ShippingParams) {
 
     // Bygg korrekt URL med API-nøkkel som query parameter
     const url = `${POSTNORD_API_BASE}/v1/deliveryoptions/bywarehouse?apikey=${POSTNORD_API_KEY}`
+    
+    // Konverter dimensjoner fra cm til mm for PostNord API
+    // Bruk standardverdier hvis ikke oppgitt
+    const lengthMm = Math.round((length || 20) * 10)
+    const widthMm = Math.round((width || 15) * 10)
+    const heightMm = Math.round((height || 10) * 10)
+    const weightGrams = Math.max(Math.round(weight * 1000), 100) // Minimum 100g
     
     const requestBody: PostNordDeliveryOptionRequest = {
       customer: {
@@ -154,10 +164,10 @@ async function fetchPostNordDeliveryOptions(params: ShippingParams) {
         }
       },
       parcelInfo: {
-        length: 200, // 20cm i millimeter
-        width: 150,  // 15cm i millimeter
-        height: 100, // 10cm i millimeter
-        weight: Math.max(weight * 1000, 100) // Konverter til gram, minimum 100g
+        length: lengthMm,
+        width: widthMm,
+        height: heightMm,
+        weight: weightGrams
       }
     }
 

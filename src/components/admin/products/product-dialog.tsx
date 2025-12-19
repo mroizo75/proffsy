@@ -35,6 +35,10 @@ interface ProductDialogProps {
     price: number
     sku: string
     stock: number
+    weight?: number | null
+    length?: number | null
+    width?: number | null
+    height?: number | null
     colorId?: string | null
     color?: {
       id: string
@@ -350,7 +354,7 @@ export function ProductDialog({ trigger, product }: ProductDialogProps) {
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div>
                     <label htmlFor="price" className="block text-sm font-medium mb-1">
-                      Pris
+                      Pris (NOK)
                     </label>
                     <Input
                       id="price"
@@ -363,6 +367,86 @@ export function ProductDialog({ trigger, product }: ProductDialogProps) {
                       disabled={isLoading}
                     />
                   </div>
+                  <div>
+                    <label htmlFor="stock" className="block text-sm font-medium mb-1">
+                      Lagerbeholdning
+                    </label>
+                    <Input
+                      id="stock"
+                      name="stock"
+                      type="number"
+                      placeholder="0"
+                      defaultValue={product?.stock || 0}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                {/* Frakt-informasjon */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h4 className="font-medium text-sm">Fraktinformasjon (for nøyaktig fraktberegning)</h4>
+                  
+                  <div className="grid gap-4 sm:grid-cols-4">
+                    <div>
+                      <label htmlFor="weight" className="block text-sm font-medium mb-1">
+                        Vekt (gram)
+                      </label>
+                      <Input
+                        id="weight"
+                        name="weight"
+                        type="number"
+                        placeholder="f.eks. 500"
+                        step="1"
+                        defaultValue={product?.weight || ""}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="length" className="block text-sm font-medium mb-1">
+                        Lengde (cm)
+                      </label>
+                      <Input
+                        id="length"
+                        name="length"
+                        type="number"
+                        placeholder="f.eks. 30"
+                        step="0.1"
+                        defaultValue={product?.length || ""}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="width" className="block text-sm font-medium mb-1">
+                        Bredde (cm)
+                      </label>
+                      <Input
+                        id="width"
+                        name="width"
+                        type="number"
+                        placeholder="f.eks. 20"
+                        step="0.1"
+                        defaultValue={product?.width || ""}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="height" className="block text-sm font-medium mb-1">
+                        Høyde (cm)
+                      </label>
+                      <Input
+                        id="height"
+                        name="height"
+                        type="number"
+                        placeholder="f.eks. 10"
+                        step="0.1"
+                        defaultValue={product?.height || ""}
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Hvis ikke utfylt, brukes standardverdier (500g, 20x15x10cm) for fraktberegning.
+                  </p>
                 </div>
 
                 <div>
