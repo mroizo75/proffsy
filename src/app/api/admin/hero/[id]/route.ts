@@ -42,38 +42,43 @@ export async function PUT(
       isVideo
     }
 
-    const image = formData.get("image") as File
-    const video = formData.get("video") as File
+    const image = formData.get("image")
+    const video = formData.get("video")
 
     if (image || video) {
       const file = image || video
-      const bytes = await file.arrayBuffer()
-      const buffer = Buffer.from(bytes)
 
-      const filename = `hero-${generateUniqueFilename(file.name)}`
-      let fileUrl: string
+      if (file instanceof Blob) {
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        const originalName = (file as File).name || `upload-${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`
+        const filename = `hero-${generateUniqueFilename(originalName)}`
+        const contentType = file.type || (isVideo ? 'video/mp4' : 'image/jpeg')
 
-      if (isR2Configured()) {
-        fileUrl = await uploadToR2(buffer, filename, file.type)
-      } else {
-        const uploadDir = join(process.cwd(), "public", "uploads")
-        try {
-          await access(uploadDir)
-        } catch {
-          await mkdir(uploadDir, { recursive: true })
+        let fileUrl: string
+
+        if (isR2Configured()) {
+          fileUrl = await uploadToR2(buffer, filename, contentType)
+        } else {
+          const uploadDir = join(process.cwd(), "public", "uploads")
+          try {
+            await access(uploadDir)
+          } catch {
+            await mkdir(uploadDir, { recursive: true })
+          }
+
+          const filepath = join(uploadDir, filename)
+          await writeFile(filepath, buffer)
+          fileUrl = `/uploads/${filename}`
         }
-
-        const filepath = join(uploadDir, filename)
-        await writeFile(filepath, buffer)
-        fileUrl = `/uploads/${filename}`
-      }
-      
-      if (image) {
-        updateData.imageUrl = fileUrl
-        if (isVideo) updateData.videoUrl = null
-      } else {
-        updateData.videoUrl = fileUrl
-        if (!isVideo) updateData.imageUrl = null 
+        
+        if (image) {
+          updateData.imageUrl = fileUrl
+          if (isVideo) updateData.videoUrl = null
+        } else {
+          updateData.videoUrl = fileUrl
+          if (!isVideo) updateData.imageUrl = null 
+        }
       }
     }
 

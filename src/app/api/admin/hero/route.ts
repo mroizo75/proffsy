@@ -47,8 +47,8 @@ export async function POST(req: Request) {
 
     const formData = await req.formData()
 
-    const image = formData.get("image") as File
-    const video = formData.get("video") as File
+    const image = formData.get("image")
+    const video = formData.get("video")
     const title = formData.get("title") as string
     const description = formData.get("description") as string
     const buttonText = formData.get("buttonText") as string
@@ -63,14 +63,26 @@ export async function POST(req: Request) {
       return new NextResponse("Missing required fields", { status: 400 })
     }
 
-    const bytes = await mediaFile.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    // Håndter fil - støtter både Blob og File
+    let buffer: Buffer
+    let filename: string
+    let contentType: string
 
-    const filename = `hero-${generateUniqueFilename(mediaFile.name)}`
+    if (mediaFile instanceof Blob) {
+      const arrayBuffer = await mediaFile.arrayBuffer()
+      buffer = Buffer.from(arrayBuffer)
+      // Hent filnavn fra formdata eller generer et
+      const originalName = (mediaFile as File).name || `upload-${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`
+      filename = `hero-${generateUniqueFilename(originalName)}`
+      contentType = mediaFile.type || (isVideo ? 'video/mp4' : 'image/jpeg')
+    } else {
+      return new NextResponse("Invalid file format", { status: 400 })
+    }
+
     let fileUrl: string
 
     if (isR2Configured()) {
-      fileUrl = await uploadToR2(buffer, filename, mediaFile.type)
+      fileUrl = await uploadToR2(buffer, filename, contentType)
     } else {
       const uploadDir = join(process.cwd(), "public", "uploads")
       try {
@@ -100,7 +112,10 @@ export async function POST(req: Request) {
     })
 
     return NextResponse.json(hero)
-  } catch {
-    return new NextResponse("Internal Server Error", { status: 500 })
+  } catch (error) {
+    return new NextResponse(
+      JSON.stringify({ error: "Internal Server Error", details: error instanceof Error ? error.message : "Unknown error" }), 
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    )
   }
 }
