@@ -110,7 +110,8 @@ export async function POST(req: Request) {
         height: totalHeight
       })
 
-      let shippingRates = shippingResult.options || []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let shippingRates: any[] = shippingResult.options || []
       
       // Hent også service points for pickup-alternativer
       if (toAddress.street && toAddress.postalCode) {
@@ -124,7 +125,7 @@ export async function POST(req: Request) {
           
           // Legg til service points som pickup-alternativer
           if (servicePoints.length > 0) {
-            const pickupOptions = servicePoints.slice(0, 5).map((sp, index) => ({
+            const pickupOptions = servicePoints.slice(0, 5).map((sp) => ({
               id: `pickup-${sp.servicePointId}`,
               name: `Hent på ${sp.name}`,
               description: `${sp.address.streetName} ${sp.address.streetNumber || ""}, ${sp.address.postalCode} ${sp.address.city}`,
@@ -132,7 +133,7 @@ export async function POST(req: Request) {
               currency: "NOK",
               estimatedDelivery: "2-4 virkedager",
               carrier: "PostNord",
-              type: "pickup" as const,
+              type: "pickup",
               service: "19",
               servicePointId: sp.servicePointId,
               location: {
@@ -145,7 +146,7 @@ export async function POST(req: Request) {
             }))
             
             // Fjern generiske pickup-alternativer og erstatt med faktiske service points
-            shippingRates = shippingRates.filter(rate => rate.type !== 'pickup')
+            shippingRates = shippingRates.filter((rate: any) => rate.type !== 'pickup')
             shippingRates = [...shippingRates, ...pickupOptions]
           }
         } catch {
@@ -154,7 +155,7 @@ export async function POST(req: Request) {
       }
 
       // Sorter: hjemlevering først, deretter pickup etter avstand
-      shippingRates.sort((a, b) => {
+      shippingRates.sort((a: any, b: any) => {
         if (a.type === 'home' && b.type !== 'home') return -1
         if (a.type !== 'home' && b.type === 'home') return 1
         if (a.type === 'pickup' && b.type === 'pickup') {
