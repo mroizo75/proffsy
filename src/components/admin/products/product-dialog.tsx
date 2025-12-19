@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -263,6 +263,9 @@ export function ProductDialog({ trigger, product }: ProductDialogProps) {
               <DialogTitle>
                 {product ? "Rediger produkt" : "Opprett nytt produkt"}
               </DialogTitle>
+              <DialogDescription>
+                {product ? "Gjør endringer i produktet og lagre." : "Fyll ut skjemaet for å opprette et nytt produkt."}
+              </DialogDescription>
             </DialogHeader>
             
             <div className="flex-1 overflow-y-auto px-6 py-4">

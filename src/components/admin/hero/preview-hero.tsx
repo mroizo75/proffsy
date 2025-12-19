@@ -5,7 +5,8 @@ import {
   Dialog, 
   DialogContent,
   DialogHeader,
-  DialogTitle 
+  DialogTitle,
+  DialogDescription 
 } from "@/components/ui/dialog"
 import { Hero } from "@/components/hero"
 import { Button } from "@/components/ui/button"
@@ -48,6 +49,9 @@ export function PreviewHero({ open, onClose, data }: PreviewHeroProps) {
       <DialogContent className="max-w-7xl p-6">
         <DialogHeader>
           <DialogTitle>Forhåndsvisning av Hero</DialogTitle>
+          <DialogDescription>
+            Se hvordan hero-seksjonen vil se ut på forskjellige enheter.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">
