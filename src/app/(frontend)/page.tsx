@@ -38,7 +38,7 @@ export default async function HomePage() {
     getHero()
   ])
 
-  // Legg til en sikkerhetskontroll for hero-data
+  // Legg til en sikkerhetskontroll for hero-data med default-verdier for nye felt
   const heroProps = hero ? {
     title: hero.title || "Velkommen",
     description: hero.description || null,
@@ -47,8 +47,8 @@ export default async function HomePage() {
     imageUrl: hero.imageUrl || null,
     videoUrl: hero.videoUrl || null,
     isVideo: hero.isVideo || false,
-    showText: hero.showText ?? true,
-    overlayOpacity: hero.overlayOpacity ?? 0
+    showText: (hero as { showText?: boolean }).showText ?? true,
+    overlayOpacity: (hero as { overlayOpacity?: number }).overlayOpacity ?? 0
   } : null;
 
   return (
