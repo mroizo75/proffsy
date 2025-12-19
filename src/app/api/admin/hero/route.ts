@@ -111,7 +111,7 @@ export async function POST(req: Request) {
         startDate,
         endDate,
         active: true
-      }
+      } as Parameters<typeof prisma.hero.create>[0]['data']
     })
 
     return NextResponse.json(hero)
